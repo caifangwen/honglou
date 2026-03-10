@@ -11,9 +11,9 @@ config_version=5
 [application]
 
 config/name="红楼回忆志"
+run/main_scene="uid://cpdeb2eb57mme"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon.svg"
-run/main_scene="res://scenes/Main.tscn"
 
 [autoload]
 

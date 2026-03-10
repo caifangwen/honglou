@@ -5,7 +5,7 @@ signal login_success()
 @onready var name_edit: LineEdit = %NameEdit
 
 func _on_dummy_login_button_pressed() -> void:
-	var name := name_edit.text.strip_edges()
+	var name: String = name_edit.text.strip_edges()
 	if name == "":
 		name = "无名氏"
 	PlayerState.display_name = name

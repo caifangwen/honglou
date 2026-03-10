@@ -39,12 +39,12 @@ func initialize(role: String) -> void:
 	last_stamina_refresh = int(Time.get_unix_time_from_system())
 
 func get_current_stamina() -> int:
-	var elapsed := int(Time.get_unix_time_from_system()) - last_stamina_refresh
-	var recovered := int(elapsed / GameConfig.STAMINA_RECOVERY_SEC)  # 每2小时恢复1点
+	var elapsed: int = int(Time.get_unix_time_from_system()) - last_stamina_refresh
+	var recovered: int = int(elapsed / GameConfig.STAMINA_RECOVERY_SEC)  # 每2小时恢复1点
 	return min(stamina + recovered, stamina_max)
 
 func consume_stamina(amount: int) -> bool:
-	var current := get_current_stamina()
+	var current: int = get_current_stamina()
 	if current < amount:
 		return false
 	stamina = current - amount
