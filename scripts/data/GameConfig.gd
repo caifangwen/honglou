@@ -44,6 +44,13 @@ const CONFLICT_PURGE_THRESHOLD: float = 100.0
 const AUDIT_THRESHOLD_MILD: float = 0.10
 const AUDIT_THRESHOLD_SEVERE: float = 0.30
 
+# === 管家系统额外常量 ===
+const MAX_STEWARD_STAMINA: int = 6
+const STEWARD_STAMINA_RECOVERY_HOURS: int = 2
+const MIN_EMBEZZLEMENT_RISK_COUNT: int = 3
+const AUDIT_DEADLINE_HOURS: int = 24
+const ASSET_TRANSFER_WINDOW_HOURS: int = 2
+
 # === 查账消耗 ===
 const AUDIT_COST_QI_SHU: int = 20
 

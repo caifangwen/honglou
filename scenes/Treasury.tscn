@@ -28,6 +28,15 @@ text = "公中银库"
 layout_mode = 2
 text = "总银两：--"
 
+[node name="ProsperityLabel" type="Label" parent="Header"]
+layout_mode = 2
+text = "繁荣度: Lv.1"
+
+[node name="DeficitBar" type="ProgressBar" parent="Header"]
+custom_minimum_size = Vector2(100, 20)
+layout_mode = 2
+value = 0.0
+
 [node name="TabContainer" type="TabContainer" parent="."]
 layout_mode = 1
 anchor_left = 0.0
@@ -92,6 +101,10 @@ anchor_bottom = 0.95
 [node name="StaminaDisplay" type="Label" parent="ActionPanel"]
 layout_mode = 2
 text = "精力：--"
+
+[node name="PrivateAssetsLabel" type="Label" parent="ActionPanel"]
+layout_mode = 2
+text = "个人私产: **0**"
 
 [node name="ProcureBtn" type="Button" parent="ActionPanel"]
 layout_mode = 2

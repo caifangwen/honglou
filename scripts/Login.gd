@@ -6,6 +6,7 @@ extends Control
 @onready var loading_label  = $CenterContainer/LoginPanel/LoadingLabel 
 @onready var login_btn      = $CenterContainer/LoginPanel/LoginBtn 
 @onready var register_btn   = $CenterContainer/LoginPanel/RegisterBtn 
+@onready var quick_login_btn = $CenterContainer/LoginPanel/QuickLoginBtn
   
 func _ready() -> void: 
 	error_label.hide() 
@@ -22,6 +23,15 @@ func _on_register_btn_pressed() -> void:
 	_set_loading(true) 
 	SupabaseManager.sign_up(email_input.text.strip_edges(), 
 							password_input.text) 
+
+func _on_quick_login_btn_pressed() -> void:
+	_set_loading(true)
+	# 模拟测试账号快捷登录
+	var test_email = "test_steward@example.com"
+	var test_pass  = "123456"
+	email_input.text = test_email
+	password_input.text = test_pass
+	SupabaseManager.sign_in(test_email, test_pass)
   
 func _on_auth_success(uid: String) -> void: 
 	_set_loading(false) 
@@ -45,6 +55,11 @@ func _on_player_check(response: Dictionary) -> void:
   
 func _on_auth_error(message: String) -> void: 
 	_set_loading(false) 
+	# 如果快捷登录时报错 "Invalid login credentials"，可能是账号还没注册，自动注册一次
+	if quick_login_btn.disabled and ("invalid login" in message.to_lower() or "invalid_grant" in message.to_lower()):
+		SupabaseManager.sign_up(email_input.text, password_input.text)
+		return
+		
 	error_label.text = _localize_error(message) 
 	error_label.show() 
   
@@ -52,6 +67,7 @@ func _set_loading(on: bool) -> void:
 	loading_label.visible = on 
 	login_btn.disabled = on 
 	register_btn.disabled = on 
+	quick_login_btn.disabled = on
   
 func _localize_error(raw: String) -> String: 
 	var low = raw.to_lower()

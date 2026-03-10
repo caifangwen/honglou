@@ -20,8 +20,10 @@ config/icon="res://icon.svg"
 GameConfig="*res://scripts/data/GameConfig.gd"
 GameState="*res://scripts/autoload/GameState.gd"
 PlayerState="*res://scripts/autoload/PlayerState.gd"
+FirebaseManager="*res://scripts/autoload/FirebaseManager.gd"
 EventBus="*res://scripts/autoload/EventBus.gd"
 SupabaseManager="*res://scripts/autoload/SupabaseManager.gd"
+StaminaManager="*res://scripts/autoload/StaminaManager.gd"
 
 [physics]
 

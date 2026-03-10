@@ -3,6 +3,7 @@ extends Node
 # 全局游戏状态，挂载为 Autoload
 
 # 游戏全局数值
+var current_game_id: String = "00000000-0000-0000-0000-000000000001" # 默认测试ID
 var deficit_value: float = 0.0       # 家族亏空值 0-100%
 var internal_conflict: float = 0.0   # 家族内耗值 0-100%
 var current_day: int = 1             # 当前游戏日
