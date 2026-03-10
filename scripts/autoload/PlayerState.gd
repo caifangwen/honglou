@@ -5,8 +5,12 @@ extends Node
 # 玩家基础属性
 var uid: String = ""
 var display_name: String = ""
-var role_class: String = ""      # "管家" | "主子" | "丫鬟" | "元老" | "清客"
+var role_class: String = ""      # "steward" | "master" | "servant" | "elder" | "guest"
 var character_name: String = ""  # 扮演的角色名（如"王熙凤"、"晴雯"）
+
+# 新增字段
+var player_db_id: String = ""    # players 表的 uuid（后续更新数据用）
+var current_game_id: String = "" # 当前局 id
 
 # 各阶层通用数值（根据角色阶层初始化不同值）
 var stamina: int = 6           # 精力
@@ -24,13 +28,29 @@ signal stamina_changed(new_val: int)
 signal silver_changed(new_val: int)
 signal qi_shu_changed(new_val: int)
 
+# 新增：从数据库返回的完整数据初始化 
+func load_from_db(row: Dictionary) -> void: 
+	player_db_id    = row.get("id", "") 
+	display_name    = row.get("display_name", "") 
+	character_name  = row.get("character_name", "") 
+	current_game_id = row.get("current_game_id", "") 
+	role_class      = row.get("role_class", "") 
+	stamina         = row.get("stamina", 6) 
+	stamina_max     = row.get("stamina_max", 6) 
+	qi_shu          = row.get("qi_shu", 100) 
+	silver          = row.get("silver", 0) 
+	face_value      = row.get("face_value", 50) 
+	prestige        = row.get("prestige", 10) 
+	loyalty         = row.get("loyalty", 50) 
+	initialize(role_class) 
+
 func initialize(role: String) -> void:
 	role_class = role
 	match role:
-		GameConfig.CLASS_STEWARD:
+		"steward":
 			stamina_max = GameConfig.STAMINA_STEWARD
 			stamina = GameConfig.STAMINA_STEWARD
-		GameConfig.CLASS_SERVANT, "小厮":
+		"servant":
 			stamina_max = GameConfig.STAMINA_SERVANT
 			stamina = GameConfig.STAMINA_SERVANT
 		_:

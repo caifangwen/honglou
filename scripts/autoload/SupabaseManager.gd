@@ -1,87 +1,120 @@
 extends Node
 
-# Supabase REST API 封装
-# 使用 Godot 4 HTTPRequest 节点进行通信
+# 本地缓存的 session 
+var access_token: String = "" 
+var refresh_token: String = "" 
+var current_uid: String = "" 
+ 
+signal auth_success(uid) 
+signal auth_error(message) 
+signal request_complete(response) 
+signal request_failed(error) 
+ 
+# ───────────────────────────────────────── 
+# 认证：注册 
+# ───────────────────────────────────────── 
+func sign_up(email, password): 
+	var body = JSON.stringify({"email": email, "password": password}) 
+	_post(GameConfig.API_AUTH_SIGNUP, body, false) 
+ 
+# ───────────────────────────────────────── 
+# 认证：登录 
+# ───────────────────────────────────────── 
+func sign_in(email, password): 
+	var body = JSON.stringify({"email": email, "password": password}) 
+	_post(GameConfig.API_AUTH_LOGIN, body, false) 
+ 
+# ───────────────────────────────────────── 
+# 数据库：查询（GET） 
+# 用法：db_get("/rest/v1/players?auth_uid=eq.xxx&select=*") 
+# ───────────────────────────────────────── 
+func db_get(endpoint): 
+	var http = HTTPRequest.new() 
+	add_child(http) 
+	http.request_completed.connect(_on_request_completed.bind(http)) 
+ 
+	var headers = _build_headers(true) 
+	http.request(GameConfig.SUPABASE_URL + endpoint, headers, HTTPClient.METHOD_GET) 
+ 
+# ───────────────────────────────────────── 
+# 数据库：插入（POST） 
+# ───────────────────────────────────────── 
+func db_insert(table, data): 
+	var body = JSON.stringify(data) 
+	_post("/rest/v1/" + table, body, true) 
+ 
+# ───────────────────────────────────────── 
+# 数据库：更新（PATCH） 
+# 用法：db_update("players", "id=eq.xxx", {"stamina": 5}) 
+# ───────────────────────────────────────── 
+func db_update(table, filter, data): 
+	var body = JSON.stringify(data) 
+	_patch("/rest/v1/" + table + "?" + filter, body) 
+ 
+# ───────────────────────────────────────── 
+# 内部：构建请求头 
+# ───────────────────────────────────────── 
+func _build_headers(with_auth): 
+	var headers = PackedStringArray([ 
+		"Content-Type: application/json", 
+		"apikey: " + GameConfig.SUPABASE_ANON_KEY, 
+		"Prefer: return=representation"   # 插入/更新后返回结果 
+	]) 
+	if with_auth and access_token != "": 
+		headers.append("Authorization: Bearer " + access_token) 
+	return headers 
+ 
+func _post(endpoint_or_url, body, with_auth): 
+	var http = HTTPRequest.new() 
+	add_child(http) 
+	http.request_completed.connect(_on_request_completed.bind(http)) 
+	var headers = _build_headers(with_auth) 
+	var url = endpoint_or_url if endpoint_or_url.begins_with("http") else GameConfig.SUPABASE_URL + endpoint_or_url 
+	http.request(url, headers, HTTPClient.METHOD_POST, body) 
+ 
+func _patch(endpoint_or_url, body): 
+	var http = HTTPRequest.new() 
+	add_child(http) 
+	http.request_completed.connect(_on_request_completed.bind(http)) 
+	var headers = _build_headers(true) 
+	var url = endpoint_or_url if endpoint_or_url.begins_with("http") else GameConfig.SUPABASE_URL + endpoint_or_url 
+	http.request(url, headers, HTTPClient.METHOD_PATCH, body) 
+ 
+# ───────────────────────────────────────── 
+# 内部：统一响应处理 
+# ───────────────────────────────────────── 
+func _on_request_completed(result, response_code, _headers, body, http): 
+	http.queue_free() 
+ 
+	if result != HTTPRequest.RESULT_SUCCESS:
+		var net_err = "网络连接失败 (Result: %d)" % result
+		push_error("[Supabase] " + net_err)
+		request_failed.emit(net_err)
+		return
 
-const SUPABASE_URL: String = "https://daotqqwsxvydxqttmams.supabase.co"
-const ANON_KEY: String = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhb3RxcXdzeHZ5ZHhxdHRtYW1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTg2NDYsImV4cCI6MjA4ODczNDY0Nn0.14c25wXFIAhoe1sJhdM7xJbEkJo3ihUqpu-VeXE680U"
-
-signal request_completed(endpoint: String, response_code: int, result: Array)
-signal request_failed(endpoint: String, error_message: String)
-
-# 获取通用请求头
-func _get_headers() -> Array:
-    return [
-        "apikey: " + ANON_KEY,
-        "Authorization: Bearer " + ANON_KEY,
-        "Content-Type: application/json",
-        "Prefer: return=representation"
-    ]
-
-# 发送 GET 请求
-func get_from_table(table_name: String, query: String = "") -> void:
-    var url = SUPABASE_URL + "/rest/v1/" + table_name
-    if query != "":
-        url += "?" + query
-    
-    var http_request = HTTPRequest.new()
-    add_child(http_request)
-    http_request.request_completed.connect(self._on_request_completed.bind(http_request, table_name))
-    
-    var error = http_request.request(url, _get_headers(), HTTPClient.METHOD_GET)
-    if error != OK:
-        request_failed.emit(table_name, "HTTP Request Error: " + str(error))
-        http_request.queue_free()
-
-# 发送 POST 请求（插入数据）
-func insert_into_table(table_name: String, data: Dictionary) -> void:
-    var url = SUPABASE_URL + "/rest/v1/" + table_name
-    var http_request = HTTPRequest.new()
-    add_child(http_request)
-    http_request.request_completed.connect(self._on_request_completed.bind(http_request, table_name))
-    
-    var json_data = JSON.stringify(data)
-    var error = http_request.request(url, _get_headers(), HTTPClient.METHOD_POST, json_data)
-    if error != OK:
-        request_failed.emit(table_name, "HTTP Request Error: " + str(error))
-        http_request.queue_free()
-
-# 发送 PATCH 请求（更新数据）
-func update_table(table_name: String, query: String, data: Dictionary) -> void:
-    var url = SUPABASE_URL + "/rest/v1/" + table_name + "?" + query
-    var http_request = HTTPRequest.new()
-    add_child(http_request)
-    http_request.request_completed.connect(self._on_request_completed.bind(http_request, table_name))
-    
-    var json_data = JSON.stringify(data)
-    var error = http_request.request(url, _get_headers(), HTTPClient.METHOD_PATCH, json_data)
-    if error != OK:
-        request_failed.emit(table_name, "HTTP Request Error: " + str(error))
-        http_request.queue_free()
-
-func _on_request_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray, http_node: HTTPRequest, endpoint: String) -> void:
-    http_node.queue_free()
-    
-    if result != HTTPRequest.RESULT_SUCCESS:
-        request_failed.emit(endpoint, "Request failed with result code: " + str(result))
-        return
-
-    var response_text = body.get_string_from_utf8()
-    var json = JSON.new()
-    var parse_err = json.parse(response_text)
-    
-    if parse_err != OK:
-        if response_code >= 200 and response_code < 300:
-            # 可能是空的返回
-            request_completed.emit(endpoint, response_code, [])
-        else:
-            request_failed.emit(endpoint, "JSON Parse Error: " + json.get_error_message())
-        return
-        
-    var data = json.get_data()
-    if data is Array:
-        request_completed.emit(endpoint, response_code, data)
-    elif data is Dictionary:
-        request_completed.emit(endpoint, response_code, [data])
-    else:
-        request_completed.emit(endpoint, response_code, [])
+	var text = body.get_string_from_utf8() 
+	var parsed = JSON.parse_string(text) 
+ 
+	if response_code >= 400 or parsed == null: 
+		# 如果是 Supabase 返回的错误 JSON，通常包含 msg 或 error 字段
+		var err_msg = text
+		if parsed is Dictionary:
+			if parsed.has("msg"): err_msg = parsed["msg"]
+			elif parsed.has("error_description"): err_msg = parsed["error_description"]
+			elif parsed.has("error"): err_msg = parsed["error"]
+		
+		if err_msg == "": err_msg = "HTTP %d" % response_code
+		
+		push_error("[Supabase Error %d] %s" % [response_code, err_msg])
+		request_failed.emit(err_msg) 
+		return 
+ 
+	# 登录/注册成功：缓存 token 
+	if parsed is Dictionary and parsed.has("access_token"): 
+		access_token = parsed["access_token"] 
+		refresh_token = parsed.get("refresh_token", "") 
+		current_uid = parsed.get("user", {}).get("id", "") 
+		auth_success.emit(current_uid) 
+		return 
+ 
+	request_complete.emit({"code": response_code, "data": parsed}) 

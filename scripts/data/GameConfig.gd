@@ -1,5 +1,16 @@
 extends Node
 
+# === Supabase 配置 ===
+const SUPABASE_URL = "https://daotqqwsxvydxqttmams.supabase.co"
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhb3RxcXdzeHZ5ZHhxdHRtYW1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTg2NDYsImV4cCI6MjA4ODczNDY0Nn0.14c25wXFIAhoe1sJhdM7xJbEkJo3ihUqpu-VeXE680U"
+
+# REST API 端点
+const API_AUTH_SIGNUP   = SUPABASE_URL + "/auth/v1/signup"
+const API_AUTH_LOGIN    = SUPABASE_URL + "/auth/v1/token?grant_type=password"
+const API_AUTH_LOGOUT   = SUPABASE_URL + "/auth/v1/logout"
+const API_PLAYERS       = SUPABASE_URL + "/rest/v1/players"
+const API_GAMES         = SUPABASE_URL + "/rest/v1/games"
+
 # === 精力系统 ===
 const STAMINA_STEWARD: int = 6         # 管家精力上限
 const STAMINA_SERVANT: int = 8         # 丫鬟/小厮精力上限

@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scripts/RoleSelect.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/RoleSelect.gd" id="1_1"]
 
 [node name="RoleSelect" type="Control"]
 layout_mode = 3
@@ -9,34 +9,263 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1")
+script = ExtResource("1_1")
 
-[node name="VBox" type="VBoxContainer" parent="."]
+[node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+color = Color(0.12, 0.08, 0.08, 1)
 
-[node name="Title" type="Label" parent="VBox"]
-layout_mode = 2
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -100.0
+offset_top = 40.0
+offset_right = 100.0
+offset_bottom = 85.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 32
 text = "选择你的身份"
 horizontal_alignment = 1
 
-[node name="StewardBtn" type="Button" parent="VBox"]
+[node name="SubtitleLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -150.0
+offset_top = 90.0
+offset_right = 150.0
+offset_bottom = 113.0
+grow_horizontal = 2
+text = "一旦选定，本局不可更改"
+horizontal_alignment = 1
+
+[node name="RoleGrid" type="GridContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -150.0
+offset_right = 0.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 20
+columns = 3
+
+[node name="StewardCard" type="PanelContainer" parent="RoleGrid"]
+custom_minimum_size = Vector2(120, 150)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="RoleGrid/StewardCard"]
+layout_mode = 2
+alignment = 1
+
+[node name="RoleIcon" type="ColorRect" parent="RoleGrid/StewardCard/VBox"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+color = Color(0.8, 0.2, 0.2, 1)
+
+[node name="RoleTitle" type="Label" parent="RoleGrid/StewardCard/VBox"]
 layout_mode = 2
 text = "管家"
+horizontal_alignment = 1
 
-[node name="MasterBtn" type="Button" parent="VBox"]
+[node name="RoleTagline" type="Label" parent="RoleGrid/StewardCard/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "掌控家族命运"
+horizontal_alignment = 1
+
+[node name="MasterCard" type="PanelContainer" parent="RoleGrid"]
+custom_minimum_size = Vector2(120, 150)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="RoleGrid/MasterCard"]
+layout_mode = 2
+alignment = 1
+
+[node name="RoleIcon" type="ColorRect" parent="RoleGrid/MasterCard/VBox"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+color = Color(0.2, 0.2, 0.8, 1)
+
+[node name="RoleTitle" type="Label" parent="RoleGrid/MasterCard/VBox"]
 layout_mode = 2
 text = "主子"
+horizontal_alignment = 1
 
-[node name="ServantBtn" type="Button" parent="VBox"]
+[node name="RoleTagline" type="Label" parent="RoleGrid/MasterCard/VBox"]
 layout_mode = 2
-text = "丫鬟 / 小厮"
+theme_override_font_sizes/font_size = 12
+text = "诗社称霸"
+horizontal_alignment = 1
 
-[connection signal="pressed" from="VBox/StewardBtn" to="." method="_on_select_steward_pressed"]
-[connection signal="pressed" from="VBox/MasterBtn" to="." method="_on_select_master_pressed"]
-[connection signal="pressed" from="VBox/ServantBtn" to="." method="_on_select_servant_pressed"]
+[node name="ServantCard" type="PanelContainer" parent="RoleGrid"]
+custom_minimum_size = Vector2(120, 150)
+layout_mode = 2
 
+[node name="VBox" type="VBoxContainer" parent="RoleGrid/ServantCard"]
+layout_mode = 2
+alignment = 1
+
+[node name="RoleIcon" type="ColorRect" parent="RoleGrid/ServantCard/VBox"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+color = Color(0.2, 0.8, 0.2, 1)
+
+[node name="RoleTitle" type="Label" parent="RoleGrid/ServantCard/VBox"]
+layout_mode = 2
+text = "丫鬟·小厮"
+horizontal_alignment = 1
+
+[node name="RoleTagline" type="Label" parent="RoleGrid/ServantCard/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "掌握秘密"
+horizontal_alignment = 1
+
+[node name="ElderCard" type="PanelContainer" parent="RoleGrid"]
+custom_minimum_size = Vector2(120, 150)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="RoleGrid/ElderCard"]
+layout_mode = 2
+alignment = 1
+
+[node name="RoleIcon" type="ColorRect" parent="RoleGrid/ElderCard/VBox"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+color = Color(0.5, 0.5, 0.5, 1)
+
+[node name="RoleTitle" type="Label" parent="RoleGrid/ElderCard/VBox"]
+layout_mode = 2
+text = "元老"
+horizontal_alignment = 1
+
+[node name="RoleTagline" type="Label" parent="RoleGrid/ElderCard/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "最高裁决"
+horizontal_alignment = 1
+
+[node name="GuestCard" type="PanelContainer" parent="RoleGrid"]
+custom_minimum_size = Vector2(120, 150)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="RoleGrid/GuestCard"]
+layout_mode = 2
+alignment = 1
+
+[node name="RoleIcon" type="ColorRect" parent="RoleGrid/GuestCard/VBox"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+color = Color(0.8, 0.8, 0.2, 1)
+
+[node name="RoleTitle" type="Label" parent="RoleGrid/GuestCard/VBox"]
+layout_mode = 2
+text = "清客"
+horizontal_alignment = 1
+
+[node name="RoleTagline" type="Label" parent="RoleGrid/GuestCard/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "搅局预言"
+horizontal_alignment = 1
+
+[node name="SelectedInfoPanel" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -350.0
+offset_top = -150.0
+offset_right = -50.0
+offset_bottom = 150.0
+grow_horizontal = 0
+grow_vertical = 2
+theme_override_constants/separation = 15
+
+[node name="RoleNameLabel" type="Label" parent="SelectedInfoPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "阶层名称"
+
+[node name="RoleDescLabel" type="Label" parent="SelectedInfoPanel"]
+layout_mode = 2
+text = "阶层详细描述..."
+autowrap_mode = 3
+
+[node name="StaminaLabel" type="Label" parent="SelectedInfoPanel"]
+layout_mode = 2
+text = "精力：X 点/日"
+
+[node name="SpecialAbilityLabel" type="Label" parent="SelectedInfoPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.843137, 0, 1)
+text = "特权能力"
+autowrap_mode = 3
+
+[node name="CharacterNameInput" type="LineEdit" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -140.0
+offset_right = 150.0
+offset_bottom = -109.0
+grow_horizontal = 2
+grow_vertical = 0
+placeholder_text = "为你的角色起名（如：王大管家）"
+alignment = 1
+
+[node name="ErrorLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -100.0
+offset_right = 200.0
+offset_bottom = -77.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 0.2, 0.2, 1)
+text = "错误提示"
+horizontal_alignment = 1
+
+[node name="ConfirmBtn" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -80.0
+offset_top = -70.0
+offset_right = 80.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 0
+disabled = true
+text = "进入大观园"
+
+[connection signal="pressed" from="ConfirmBtn" to="." method="_on_confirm_btn_pressed"]
