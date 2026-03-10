@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="红楼回忆志"
-run/main_scene="uid://cpdeb2eb57mme"
+run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon.svg"
 
@@ -22,6 +22,7 @@ GameState="*res://scripts/autoload/GameState.gd"
 PlayerState="*res://scripts/autoload/PlayerState.gd"
 FirebaseManager="*res://scripts/autoload/FirebaseManager.gd"
 EventBus="*res://scripts/autoload/EventBus.gd"
+SupabaseManager="*res://scripts/autoload/SupabaseManager.gd"
 
 [physics]
 
