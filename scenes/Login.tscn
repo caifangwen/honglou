@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://bmdtcpmygb3it"]
+
+[ext_resource type="Script" uid="uid://b452rd5p4x3jp" path="res://scripts/Login.gd" id="1"]
+
+[node name="Login" type="Control" unique_id=1713311269]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=1263422126]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Margin" unique_id=1585957315]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Margin/VBox" unique_id=1614165174]
+layout_mode = 2
+text = "大观园 · 登录"
+horizontal_alignment = 1
+
+[node name="DummyLoginBtn" type="Button" parent="Margin/VBox" unique_id=353134617]
+layout_mode = 2
+text = "占位登录按钮"
+
+[connection signal="pressed" from="Margin/VBox/DummyLoginBtn" to="." method="_on_dummy_login_button_pressed"]

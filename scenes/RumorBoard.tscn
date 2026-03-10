@@ -1,0 +1,78 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/RumorBoardUI.gd" id="1"]
+
+[node name="RumorBoard" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Header" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchor_right = 1.0
+offset_bottom = 40.0
+
+[node name="BackBtn" type="Button" parent="Header"]
+layout_mode = 2
+text = "返回"
+
+[node name="TitleLabel" type="Label" parent="Header"]
+layout_mode = 2
+text = "流言广场"
+
+[node name="ActiveRumors" type="ScrollContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 0.1
+anchor_right = 1.0
+anchor_bottom = 0.6
+
+[node name="RumorList" type="VBoxContainer" parent="ActiveRumors"]
+layout_mode = 2
+
+[node name="RumorItemTemplate" type="PanelContainer" parent="ActiveRumors/RumorList"]
+layout_mode = 2
+
+[node name="RumorContent" type="Label" parent="ActiveRumors/RumorList/RumorItemTemplate"]
+layout_mode = 2
+text = "示例流言内容"
+
+[node name="FermentStageBar" type="ProgressBar" parent="ActiveRumors/RumorList/RumorItemTemplate"]
+layout_mode = 2
+
+[node name="TimeLeftLabel" type="Label" parent="ActiveRumors/RumorList/RumorItemTemplate"]
+layout_mode = 2
+text = "剩余时间：--"
+
+[node name="SuppressBtn" type="Button" parent="ActiveRumors/RumorList/RumorItemTemplate"]
+layout_mode = 2
+text = "压制"
+
+[node name="PublishPanel" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 0.65
+anchor_right = 1.0
+anchor_bottom = 0.95
+
+[node name="TargetPlayerSelect" type="OptionButton" parent="PublishPanel"]
+layout_mode = 2
+
+[node name="RumorContentInput" type="TextEdit" parent="PublishPanel"]
+layout_mode = 2
+
+[node name="StaminaCostLabel" type="Label" parent="PublishPanel"]
+layout_mode = 2
+text = "消耗：5点精力"
+
+[node name="PublishBtn" type="Button" parent="PublishPanel"]
+layout_mode = 2
+text = "发布流言"
+
+[connection signal="pressed" from="Header/BackBtn" to="." method="_on_BackBtn_pressed"]
+[connection signal="pressed" from="PublishPanel/PublishBtn" to="." method="_on_PublishBtn_pressed"]
+
