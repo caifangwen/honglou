@@ -4,12 +4,14 @@ extends Node
 
 # 游戏全局数值
 var current_game_id: String = "00000000-0000-0000-0000-000000000001" # 默认测试ID
+var total_silver: int = 10000        # 公中银两
 var deficit_value: float = 0.0       # 家族亏空值 0-100%
 var internal_conflict: float = 0.0   # 家族内耗值 0-100%
 var current_day: int = 1             # 当前游戏日
 var current_phase: String = "normal" # 当前阶段: normal/crisis/purge
 
 # 信号：全局状态变化
+signal total_silver_changed(new_value: int)
 signal deficit_changed(new_value: float)
 signal conflict_changed(new_value: float)
 signal special_event_triggered(event_name: String)

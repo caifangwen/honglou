@@ -1,0 +1,65 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/IntelFragmentItem.gd" id="1_item"]
+
+[node name="IntelFragmentItem" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 80)
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 80.0
+grow_horizontal = 2
+theme_type_variation = &"FlatPanel"
+script = ExtResource("1_item")
+
+[node name="HBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="TypeIcon" type="Label" parent="HBox"]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "[?]"
+horizontal_alignment = 1
+
+[node name="SceneLabel" type="Label" parent="HBox"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "来源场景"
+horizontal_alignment = 1
+
+[node name="ValueStars" type="Label" parent="HBox"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.843137, 0, 1)
+text = "★★★☆☆"
+horizontal_alignment = 1
+
+[node name="TimeLabel" type="Label" parent="HBox"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "47:59:59"
+horizontal_alignment = 1
+
+[node name="VSeparator" type="VSeparator" parent="HBox"]
+layout_mode = 2
+
+[node name="Actions" type="HBoxContainer" parent="HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="DetailBtn" type="Button" parent="HBox/Actions"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "查看详情"
+
+[node name="SellBtn" type="Button" parent="HBox/Actions"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "出售"
+
+[node name="RumorBtn" type="Button" parent="HBox/Actions"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "发布流言"

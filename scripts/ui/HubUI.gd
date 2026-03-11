@@ -15,6 +15,9 @@ func _ready() -> void:
 	_init_player_info()
 	GameState.deficit_changed.connect(_on_deficit_changed)
 	GameState.conflict_changed.connect(_on_conflict_changed)
+	PlayerState.silver_changed.connect(_on_silver_changed)
+	PlayerState.qi_shu_changed.connect(_on_qi_shu_changed)
+	PlayerState.stamina_changed.connect(_on_stamina_changed)
 
 func _init_top_bar() -> void:
 	game_day_label.text = "第%d日" % GameState.current_day
@@ -32,6 +35,16 @@ func _on_deficit_changed(new_value: float) -> void:
 
 func _on_conflict_changed(new_value: float) -> void:
 	conflict_bar.value = new_value
+
+func _on_silver_changed(new_value: int) -> void:
+	silver_label.text = str(new_value)
+
+func _on_qi_shu_changed(new_value: int) -> void:
+	qi_shu_label.text = str(new_value)
+
+func _on_stamina_changed(_new_value: int) -> void:
+	# 如果有精力条也可以在这里更新
+	pass
 
 # === 导航按钮回调 ===
 

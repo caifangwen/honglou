@@ -42,7 +42,7 @@ func _on_auth_success(uid: String) -> void:
 	_set_loading(false) 
 	# 查询该 uid 是否已建立角色 
 	var res = await SupabaseManager.db_get( 
-		"/rest/v1/players?auth_uid=eq.%s&select=id,role_class,character_name" % uid 
+		"/rest/v1/players?auth_uid=eq.%s&select=*" % uid 
 	) 
 	_on_player_check(res) 
   
@@ -53,6 +53,15 @@ func _on_player_check(response: Dictionary) -> void:
 		var p = data[0] 
 		PlayerState.uid = SupabaseManager.current_uid
 		PlayerState.load_from_db(p)
+		
+		# 如果是管家，额外获取私产信息并合并
+		if PlayerState.role_class == "steward":
+			var s_res = await SupabaseManager.db_get(
+				"/rest/v1/steward_accounts?steward_uid=eq.%s&game_id=eq.%s&select=private_assets" % [PlayerState.uid, PlayerState.current_game_id]
+			)
+			if s_res["code"] == 200 and not s_res["data"].is_empty():
+				PlayerState.silver = s_res["data"][0].get("private_assets", PlayerState.silver)
+		
 		get_tree().change_scene_to_file("res://scenes/Hub.tscn") 
 	else: 
 		# 新玩家 → 角色选择 

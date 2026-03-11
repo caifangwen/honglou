@@ -7,13 +7,7 @@ extends Control
 @onready var log_text = $MainLayout/RightPanel/LogContainer/LogText
 @onready var status_container = $MainLayout/RightPanel/StatusContainer
 
-# 模拟数据
-var public_silver: int = 1200
-var private_silver: int = 50
-var prestige: int = 75
-var deficit_rate: float = 0.0
-var internal_conflict: float = 0.0
-var stamina: int = 6
+# 模拟数据 (部分已迁移至全局状态)
 var stamina_max: int = 6
 
 # 路由进度
@@ -102,6 +96,27 @@ func _setup_resource_debug():
 	_add_resource_row(grid, "内耗值", "internal_conflict", 15, 0)
 	_add_resource_row(grid, "私 产", "private_silver", 50, 0)
 
+func _get_val(var_name: String):
+	match var_name:
+		"public_silver": return GameState.total_silver
+		"stamina": return PlayerState.stamina
+		"prestige": return PlayerState.prestige
+		"deficit_rate": return GameState.deficit_value
+		"internal_conflict": return GameState.internal_conflict
+		"private_silver": return PlayerState.silver
+	return 0
+
+func _set_val(var_name: String, val: float):
+	match var_name:
+		"public_silver": 
+			GameState.total_silver = int(val)
+			GameState.total_silver_changed.emit(GameState.total_silver)
+		"stamina": PlayerState.stamina = int(val)
+		"prestige": PlayerState.prestige = int(val)
+		"deficit_rate": GameState.deficit_value = val
+		"internal_conflict": GameState.internal_conflict = val
+		"private_silver": PlayerState.silver = int(val)
+
 func _add_resource_row(parent: Control, label_text: String, var_name: String, delta: int, reset_val: float):
 	var btn_plus = Button.new()
 	btn_plus.text = "+%d %s" % [delta, label_text]
@@ -121,14 +136,15 @@ func _add_resource_row(parent: Control, label_text: String, var_name: String, de
 	# 数值显示
 	var val_label = Label.new()
 	val_label.name = "Label_" + var_name
-	val_label.text = "当前: %s" % str(get(var_name))
+	val_label.text = "当前: %s" % str(_get_val(var_name))
+	# 确保名称唯一且可被 find_child 找到
 	parent.add_child(val_label)
-	# 占位符
+	# 占位符 (保持 Grid 对齐)
 	parent.add_child(Control.new())
 	parent.add_child(Control.new())
 
 func _update_resource(var_name: String, delta: float, is_reset: bool = false):
-	var old_val = get(var_name)
+	var old_val = _get_val(var_name)
 	var new_val = delta if is_reset else old_val + delta
 	
 	# 边界保护
@@ -141,17 +157,24 @@ func _update_resource(var_name: String, delta: float, is_reset: bool = false):
 	else:
 		new_val = max(0, new_val)
 	
-	set(var_name, new_val)
+	_set_val(var_name, new_val)
 	_log("%s 变更为 %s (原值: %s)" % [var_name, str(new_val), str(old_val)], "RESOURCE")
 	_refresh_resource_labels()
 	_refresh_action_buttons()
 	_update_route_conditions()
 
 func _refresh_resource_labels():
-	for var_name in ["public_silver", "stamina", "prestige", "deficit_rate", "internal_conflict", "private_silver"]:
+	# 显式查找并更新
+	var var_names = ["public_silver", "stamina", "prestige", "deficit_rate", "internal_conflict", "private_silver"]
+	for var_name in var_names:
 		var label = content_vbox.find_child("Label_" + var_name, true, false)
 		if label:
-			label.text = "当前: %s" % str(get(var_name))
+			label.text = "当前: %s" % str(_get_val(var_name))
+		else:
+			# 如果没找到，尝试在整个场景树中查找（防止 UI 结构变化）
+			label = find_child("Label_" + var_name, true, false)
+			if label:
+				label.text = "当前: %s" % str(_get_val(var_name))
 
 # --- 占位方法 (后续实现) ---
 
@@ -165,12 +188,13 @@ func _create_reset_button():
 
 func _on_reset_all():
 	_show_confirm("是否确认重置全部数据？此操作不可逆。", func():
-		public_silver = 1200
-		private_silver = 50
-		prestige = 75
-		deficit_rate = 0.0
-		internal_conflict = 0.0
-		stamina = 6
+		GameState.total_silver = 1200
+		GameState.total_silver_changed.emit(GameState.total_silver)
+		PlayerState.silver = 50
+		PlayerState.prestige = 75
+		GameState.deficit_value = 0.0
+		GameState.internal_conflict = 0.0
+		PlayerState.stamina = 6
 		total_paid = 0
 		total_withheld = 0
 		deduction_count = 0
@@ -301,11 +325,11 @@ func _pay_allowance(index: int, ratio: float, is_extra: bool = false):
 	if withheld > 0:
 		total_withheld += withheld
 		deduction_count += 1
-		private_silver += withheld
+		PlayerState.silver += withheld
 	
 	if is_extra:
-		deficit_rate += 2
-		prestige += 15 # 假设好感度映射到威望或类似的全局反馈
+		GameState.deficit_value += 2
+		PlayerState.prestige += 15 # 假设好感度映射到威望或类似的全局反馈
 		_log("向 %s 额外赏赐 %d (标准 %d) -> 亏空+2, 威望+15" % [p.name, amount, p.standard], "ACTION")
 	else:
 		_log("向 %s 发放 %d (标准 %d, 克扣 %d) -> 私产+%d" % [p.name, amount, p.standard, withheld, withheld], "ACTION")
@@ -374,17 +398,17 @@ func _setup_action_area():
 
 func _update_action_button_state(index: int, btn: Button):
 	var act = actions[index]
-	if stamina < act.cost:
+	if PlayerState.stamina < act.cost:
 		btn.disabled = true
-		btn.tooltip_text = "精力不足，剩余 %d 点" % stamina
+		btn.tooltip_text = "精力不足，剩余 %d 点" % PlayerState.stamina
 	else:
 		btn.disabled = false
 		btn.tooltip_text = ""
 
 func _execute_action(index: int):
 	var act = actions[index]
-	if stamina >= act.cost:
-		stamina -= act.cost
+	if PlayerState.stamina >= act.cost:
+		PlayerState.stamina -= act.cost
 		_log("执行行动: %s (消耗 %d 精力) -> 成功" % [act.name, act.cost], "ACTION")
 		_refresh_resource_labels()
 		_refresh_action_buttons()
@@ -481,8 +505,8 @@ func _on_audit_report():
 	_refresh_audit_ui()
 
 func _on_audit_action(action_name: String, cost: int):
-	if private_silver >= cost:
-		private_silver -= cost
+	if PlayerState.silver >= cost:
+		PlayerState.silver -= cost
 		_log("执行应对: %s -> 成功 (消耗私产 %d)" % [action_name, cost], "ACTION")
 		_refresh_resource_labels()
 	else:
@@ -494,11 +518,11 @@ func _on_audit_verdict(verdict: String):
 		"无罪":
 			_log("判定无罪: 举报者-20气数，案件关闭", "SYSTEM")
 		"降级":
-			prestige = 0
-			private_silver = 0
+			PlayerState.prestige = 0
+			PlayerState.silver = 0
 			_log("判定降级: 威望归零，私产没收", "CRITICAL")
 		"抄家":
-			internal_conflict = 100
+			GameState.internal_conflict = 100
 			_log("判定抄家: 内耗值爆表，触发全局抄家事件", "CRITICAL")
 			_trigger_global_event("抄家")
 	
@@ -712,14 +736,14 @@ func _update_route_conditions():
 	# 贤能管家检测
 	var v_deficit = content_vbox.find_child("RouteV_Deficit", true, false)
 	if v_deficit:
-		var ok = deficit_rate <= 15
-		v_deficit.text = "%s 家族亏空 ≤ 15%% (当前: %.1f%%)" % [("✅" if ok else "❌"), deficit_rate]
+		var ok = GameState.deficit_value <= 15
+		v_deficit.text = "%s 家族亏空 ≤ 15%% (当前: %.1f%%)" % [("✅" if ok else "❌"), GameState.deficit_value]
 		v_deficit.add_theme_color_override("font_color", Color.GREEN if ok else Color.WHITE)
 		
 	var v_sat = content_vbox.find_child("RouteV_Satisfaction", true, false)
 	if v_sat:
-		var ok = prestige >= 140 # 模拟满意度
-		v_sat.text = "%s 平均满意度 ≥ 70%% (当前: %.1f%%)" % [("✅" if ok else "❌"), (float(prestige) / 2.0)]
+		var ok = PlayerState.prestige >= 140 # 模拟满意度
+		v_sat.text = "%s 平均满意度 ≥ 70%% (当前: %.1f%%)" % [("✅" if ok else "❌"), (float(PlayerState.prestige) / 2.0)]
 		v_sat.add_theme_color_override("font_color", Color.GREEN if ok else Color.WHITE)
 		
 	var v_comp = content_vbox.find_child("RouteV_Complaints", true, false)
@@ -731,14 +755,14 @@ func _update_route_conditions():
 	# 末世枭雄检测
 	var s_ruin = content_vbox.find_child("RouteS_Ruin", true, false)
 	if s_ruin:
-		var ok = internal_conflict >= 100
+		var ok = GameState.internal_conflict >= 100
 		s_ruin.text = "%s 家族覆灭 (内耗100%%)" % ("✅" if ok else "❌")
 		s_ruin.add_theme_color_override("font_color", Color.GREEN if ok else Color.WHITE)
 		
 	var s_assets = content_vbox.find_child("RouteS_Assets", true, false)
 	if s_assets:
-		var ok = private_silver >= 500
-		s_assets.text = "%s 私产 ≥ 500两 (当前: %d两)" % [("✅" if ok else "❌"), private_silver]
+		var ok = PlayerState.silver >= 500
+		s_assets.text = "%s 私产 ≥ 500两 (当前: %d两)" % [("✅" if ok else "❌"), PlayerState.silver]
 		s_assets.add_theme_color_override("font_color", Color.GREEN if ok else Color.WHITE)
 		
 	var s_trans = content_vbox.find_child("RouteS_Transfer", true, false)
@@ -767,7 +791,7 @@ func _setup_event_area():
 		flow.add_child(btn)
 
 func _on_event_yuanfei():
-	deficit_rate += 25
+	GameState.deficit_value += 25
 	_log("触发：元妃省亲 -> 亏空值+25，所有精力消耗翻倍提示", "CRITICAL")
 	_refresh_resource_labels()
 	_update_route_conditions()
@@ -776,7 +800,7 @@ func _on_event_funeral():
 	_log("触发：大出殡 -> 诗社暂停，月例暂停发放", "CRITICAL")
 
 func _on_event_raid():
-	internal_conflict = 85
+	GameState.internal_conflict = 85
 	_log("触发：抄检大观园 -> 内耗值飙升至85%，全员背包曝光提示", "CRITICAL")
 	_refresh_resource_labels()
 	_update_route_conditions()
@@ -785,8 +809,9 @@ func _on_event_check():
 	_log("触发：贾政大检查 -> 24小时违禁品转移窗口开启", "RISK")
 
 func _on_event_liulaolao():
-	public_silver -= 50
-	internal_conflict = max(0, internal_conflict - 8)
+	GameState.total_silver -= 50
+	GameState.total_silver_changed.emit(GameState.total_silver)
+	GameState.internal_conflict = max(0, GameState.internal_conflict - 8)
 	_log("触发：刘姥姥进大观园 -> 消耗公中银50，内耗值-8", "RESOURCE")
 	_refresh_resource_labels()
 	_update_route_conditions()

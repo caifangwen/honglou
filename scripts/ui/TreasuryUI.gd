@@ -125,7 +125,8 @@ func _update_treasury_ui() -> void:
 			else: style.bg_color = Color.RED
 
 func _update_steward_ui() -> void:
-	var private_assets = current_steward_data.get("private_assets", 0)
+	# 优先使用 PlayerState.silver (已从 steward_accounts 同步)
+	var private_assets = PlayerState.silver if PlayerState.role_class == "steward" else current_steward_data.get("private_assets", 0)
 	if private_assets_label:
 		# 简单的混淆显示 (例如：**123**)
 		private_assets_label.text = "个人私产: **%d**" % private_assets
