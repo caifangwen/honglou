@@ -1,0 +1,53 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/PowerStatusIndicator.gd" id="1_power"]
+
+[node name="PowerStatusIndicator" type="MarginContainer"]
+custom_minimum_size = Vector2(200, 80)
+offset_right = 200.0
+offset_bottom = 80.0
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+script = ExtResource("1_power")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="MasterRow" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MasterNameLabel" type="Label" parent="VBox/MasterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "主子: [加载中...]"
+
+[node name="WarningIcon" type="Label" parent="VBox/MasterRow"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0, 0, 1)
+text = "⚠️"
+tooltip_text = "主子已被元老厌弃"
+
+[node name="StatusRow" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="PowerLevelLabel" type="Label" parent="VBox/StatusRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "权势: 中"
+
+[node name="ActionCountLabel" type="Label" parent="VBox/StatusRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "解锁特殊行动: 0"
+horizontal_alignment = 2
+size_flags_horizontal = 3
