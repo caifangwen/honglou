@@ -69,7 +69,7 @@ func _format_time(iso_time: String) -> String:
 
 func _setup_rumor_ui(data: Dictionary) -> void:
     rumor_panel.show()
-    var stage = data.get("ferment_stage", 0)
+    var stage = data.get("stage", 0)
     var created_at = Time.get_unix_time_from_datetime_string(data.get("created_at", ""))
     var now = Time.get_unix_time_from_system()
     var elapsed = now - created_at
@@ -117,7 +117,7 @@ func _setup_action_buttons(data: Dictionary) -> void:
         if data.get("receiver_uid") == PlayerState.player_db_id: # 被流言攻击的目标
             var btn_suppress = Button.new()
             btn_suppress.text = "压下 (-10气数)"
-            btn_suppress.disabled = data.get("ferment_stage", 0) > 0
+            btn_suppress.disabled = data.get("stage", 0) > 0
             btn_suppress.pressed.connect(_on_suppress_pressed)
             action_buttons.add_child(btn_suppress)
         

@@ -60,9 +60,13 @@ BEGIN
         ALTER TABLE messages ADD COLUMN expires_at TIMESTAMPTZ;
     END IF;
 
-    -- 检查并添加 ferment_stage 字段
-    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = 'messages' AND column_name = 'ferment_stage') THEN
-        ALTER TABLE messages ADD COLUMN ferment_stage INT DEFAULT 0;
+    -- 检查并添加 stage 字段
+    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = 'messages' AND column_name = 'stage') THEN
+        IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = 'messages' AND column_name = 'ferment_stage') THEN
+            ALTER TABLE messages RENAME COLUMN ferment_stage TO stage;
+        ELSE
+            ALTER TABLE messages ADD COLUMN stage INT DEFAULT 0;
+        END IF;
     END IF;
 
     -- 检查并添加 updated_at 字段

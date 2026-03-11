@@ -110,7 +110,7 @@ func post_rumor(target_uid: String, content: String, intel_fragments: Array = []
         return {"success": false, "error": "精力不足，无法散播流言。"}
     
     var stage = 0
-    # 若 intel_fragments.size() >= 2，触发"流言嫁接"，ferment_stage 初始为1
+    # 若 intel_fragments.size() >= 2，触发"流言嫁接"，stage 初始为1
     if intel_fragments.size() >= 2:
         stage = 1
     
@@ -125,7 +125,7 @@ func post_rumor(target_uid: String, content: String, intel_fragments: Array = []
         "message_type": "rumor",
         "content": content,
         "attachments": intel_fragments,
-        "ferment_stage": stage,
+        "stage": stage,
         "expires_at": expires_at,
         "stamina_cost": 5
     }
@@ -136,8 +136,8 @@ func post_rumor(target_uid: String, content: String, intel_fragments: Array = []
 # 6. 压下流言（被目标本人）
 func suppress_rumor(rumor_id: String) -> bool:
     var rumor = await _get_message_by_id(rumor_id)
-    if rumor.is_empty() or rumor["ferment_stage"] > 0:
-        return false # 仅在 ferment_stage == 0（0-6小时内）可操作
+    if rumor.is_empty() or rumor["stage"] > 0:
+        return false # 仅在 stage == 0（0-6小时内）可操作
     
     # 消耗10点气数
     if PlayerState.qi_shu < 10:

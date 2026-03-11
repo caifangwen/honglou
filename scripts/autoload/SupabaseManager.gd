@@ -183,6 +183,55 @@ func update_table(table_name: String, filter: String, data: Dictionary):
 	return res
 
 # ───────────────────────────────────────── 
+# Edge Functions：调用
+# ───────────────────────────────────────── 
+func invoke_function(function_name: String, payload: Dictionary = {}):
+	var body = JSON.stringify(payload)
+	var url = GameConfig.SUPABASE_URL + "/functions/v1/" + function_name
+	var res = await _post(url, body, true)
+	return res["data"] if res["code"] == 200 else {"success": false, "error": res.get("error", "Unknown error")}
+
+# ───────────────────────────────────────── 
+# 数据库：查询封装（为了兼容用户代码中的 .query）
+# ───────────────────────────────────────── 
+func query(table_name: String, filters: Dictionary = {}):
+	var endpoint = "/rest/v1/" + table_name + "?select=*"
+	for key in filters.keys():
+		endpoint += "&" + key + "=eq." + str(filters[key])
+	
+	var res = await db_get(endpoint)
+	return res["data"] if res["code"] == 200 else []
+
+# ───────────────────────────────────────── 
+# Realtime：订阅频道
+# ───────────────────────────────────────── 
+func channel(channel_name: String):
+	# 这里返回一个模拟的 Channel 对象，实际逻辑在 _on_ws_message 中
+	return RumorChannel.new(self, channel_name)
+
+class RumorChannel:
+	var _manager: Node
+	var _name: String
+	var _callback: Callable
+	
+	func _init(manager, name):
+		_manager = manager
+		_name = name
+	
+	func on(event_type, config, callback):
+		_callback = callback
+		return self
+		
+	func subscribe():
+		# 简化版订阅逻辑
+		_manager._send_ws("realtime", "join", {"topic": "realtime:public"})
+		_manager.realtime_update.connect(func(table, data):
+			if table == "rumors":
+				_callback.call({"eventType": "INSERT", "new": data}) # 简化处理
+		)
+		return self
+
+# ───────────────────────────────────────── 
 # 内部：统一响应处理 
 # ───────────────────────────────────────── 
 func _on_request_completed_async(result, response_code, _headers, body, http, endpoint: String = ""): 

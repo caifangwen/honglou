@@ -41,7 +41,7 @@ func _on_TimeSkipBtn_pressed() -> void:
 	# 模拟流言发酵的时间跳过（手动触发一次检查）
 	log_label.append_text("正在模拟时间跳过，触发流言发酵检查...\n")
 	# 这里简单查询所有当前局的活跃流言并尝试发酵
-	var res = await SupabaseManager.db_get("/rest/v1/rumors?game_id=eq.%s&ferment_stage=lt.3&is_suppressed=eq.false&select=id" % harness.test_game_id)
+	var res = await SupabaseManager.db_get("/rest/v1/rumors?game_id=eq.%s&stage=lt.3&is_suppressed=eq.false&select=id" % harness.test_game_id)
 	if res["code"] == 200:
 		for rumor in res["data"]:
 			await harness.ferment_check_now(rumor["id"])

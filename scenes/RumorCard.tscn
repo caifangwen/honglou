@@ -1,0 +1,50 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/RumorCard.gd" id="1"]
+
+[node name="RumorCard" type="PanelContainer"]
+offset_right = 400.0
+offset_bottom = 120.0
+script = ExtResource("1")
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="Header" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+
+[node name="TargetLabel" type="Label" parent="Content/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "关于 XXX 的传言"
+
+[node name="GraftedBadge" type="Label" parent="Content/Header"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0, 0, 1)
+text = "[嫁接]"
+
+[node name="StageIndicator" type="Label" parent="Content/Header"]
+layout_mode = 2
+text = "口耳相传"
+
+[node name="HSeparator" type="HSeparator" parent="Content"]
+layout_mode = 2
+
+[node name="ContentLabel" type="Label" parent="Content"]
+layout_mode = 2
+text = "流言内容正在加载中..."
+autowrap_mode = 3
+
+[node name="Footer" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+
+[node name="Countdown" type="Label" parent="Content/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "还有 0时0分 恶化"
+
+[node name="SuppressBtn" type="Button" parent="Content/Footer"]
+layout_mode = 2
+text = "悄悄压下 (10气数)"

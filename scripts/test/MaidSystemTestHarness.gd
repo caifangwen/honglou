@@ -92,8 +92,8 @@ func test_rumor_fermentation() -> void:
 		"publisher_uid": maid_a_uid,
 		"target_uid": maid_b_uid,
 		"content": "听说丫鬟B私藏了主子的发簪。",
-		"ferment_stage": 0,
-		"stage_0_at": seven_hours_ago
+		"stage": 1,
+		"published_at": seven_hours_ago
 	})
 	
 	if rumor_res["code"] != 201:
@@ -105,12 +105,12 @@ func test_rumor_fermentation() -> void:
 	# 2. 调用模拟的发酵检查
 	await ferment_check_now(rumor_id)
 	
-	# 3. 断言：ferment_stage 更新为 1，target 体面值减少
-	var updated_rumor = await SupabaseManager.db_get("/rest/v1/rumors?id=eq." + rumor_id + "&select=ferment_stage")
+	# 3. 断言：stage 更新为 2，target 体面值减少
+	var updated_rumor = await SupabaseManager.db_get("/rest/v1/rumors?id=eq." + rumor_id + "&select=stage")
 	var target_player = await SupabaseManager.db_get("/rest/v1/players?id=eq." + maid_b_uid + "&select=face_value")
 	
-	if updated_rumor["data"][0]["ferment_stage"] == 1:
-		log_test("断言成功：流言发酵至阶段 1。")
+	if updated_rumor["data"][0]["stage"] == 2:
+		log_test("断言成功：流言发酵至阶段 2。")
 	else:
 		log_test("断言失败：流言阶段未更新。")
 		
@@ -149,15 +149,15 @@ func ferment_check_now(rumor_id: String) -> void:
 	if res["code"] != 200 or res["data"].is_empty(): return
 	
 	var rumor = res["data"][0]
-	var stage = rumor["ferment_stage"]
+	var stage = rumor["stage"]
 	var target_uid = rumor["target_uid"]
 	
 	# 检查时间是否满足（这里由于是测试，我们假设已经满足）
-	if stage == 0:
+	if stage == 1:
 		# 更新流言阶段
 		await SupabaseManager.db_update("rumors", "id=eq." + rumor_id, {
-			"ferment_stage": 1,
-			"stage_1_at": Time.get_datetime_string_from_unix_time(int(Time.get_unix_time_from_system()))
+			"stage": 2,
+			"stage2_at": Time.get_datetime_string_from_unix_time(int(Time.get_unix_time_from_system()))
 		})
 		
 		# 扣除目标体面值

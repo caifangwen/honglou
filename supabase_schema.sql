@@ -137,8 +137,8 @@ create table rumors (
   target_id uuid not null references players(id),
 
   content text not null,
-  ferment_stage int not null default 1
-    check (ferment_stage in (1, 2, 3)),
+  stage int not null default 1
+    check (stage in (1, 2, 3)),
   -- 1: 口耳相传（0~6h） 2: 人尽皆知（6~12h） 3: 板上钉钉（12h+）
 
   is_suppressed bool default false,

@@ -23,14 +23,14 @@ func _check_rumors() -> void:
     var res = await SupabaseManager.db_get(endpoint)
     if res["code"] == 200:
         for rumor in res["data"]:
-            _update_ferment_stage(rumor)
+            _update_stage(rumor)
 
-func _update_ferment_stage(rumor: Dictionary) -> void:
+func _update_stage(rumor: Dictionary) -> void:
     var created_at = Time.get_unix_time_from_datetime_string(rumor["created_at"])
     var now = Time.get_unix_time_from_system()
     var elapsed_hours = (now - created_at) / 3600.0
     
-    var current_stage = rumor["ferment_stage"]
+    var current_stage = rumor["stage"]
     var new_stage = current_stage
     
     # 规则：0-6h (stage 0), 6-12h (stage 1), 12h+ (stage 2)
@@ -41,7 +41,7 @@ func _update_ferment_stage(rumor: Dictionary) -> void:
         
     if new_stage != current_stage:
         # 更新数据库
-        await SupabaseManager.db_update("messages", "id=eq." + rumor["id"], {"ferment_stage": new_stage})
+        await SupabaseManager.db_update("messages", "id=eq." + rumor["id"], {"stage": new_stage})
         # 发出实时通知或通过 EventBus
         # EventBus.emit_signal("rumor_stage_changed", rumor["id"], new_stage)
         

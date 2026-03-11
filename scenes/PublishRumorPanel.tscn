@@ -1,0 +1,118 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/PublishRumorPanel.gd" id="1"]
+
+[node name="PublishRumorPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -200.0
+offset_right = 250.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TabContainer" type="TabContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 40.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="FromIntel" type="VBoxContainer" parent="Panel/TabContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/TabContainer/FromIntel"]
+layout_mode = 2
+text = "选择情报碎片 (最多2条)"
+
+[node name="FragmentList" type="VBoxContainer" parent="Panel/TabContainer/FromIntel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="FreeWrite" type="VBoxContainer" parent="Panel/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/TabContainer/FreeWrite"]
+layout_mode = 2
+text = "自由编写流言 (最多150字)"
+
+[node name="ContentInput" type="TextEdit" parent="Panel/TabContainer/FreeWrite"]
+layout_mode = 2
+size_flags_vertical = 3
+placeholder_text = "输入流言内容..."
+
+[node name="TargetSelector" type="OptionButton" parent="Panel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 5.0
+offset_bottom = 35.0
+grow_horizontal = 2
+text = "选择流言目标..."
+
+[node name="StaminaCost" type="HBoxContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+offset_top = -70.0
+offset_bottom = -40.0
+grow_horizontal = 2
+grow_vertical = 0
+alignment = 1
+
+[node name="Label" type="Label" parent="Panel/StaminaCost"]
+layout_mode = 2
+text = "消耗 5 点精力"
+
+[node name="GraftHint" type="Label" parent="Panel"]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+offset_top = -100.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 0.8, 0.2, 1)
+text = "⚡ 可嫁接！伤害翻倍"
+horizontal_alignment = 1
+
+[node name="PublishBtn" type="Button" parent="Panel"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+offset_top = -40.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "发布流言"
+
+[node name="CloseBtn" type="Button" parent="Panel"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -30.0
+offset_bottom = 30.0
+grow_horizontal = 0
+text = "X"

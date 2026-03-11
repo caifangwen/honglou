@@ -150,9 +150,8 @@ CREATE TABLE rumors (
     source_fragments JSONB DEFAULT '[]',                -- 使用的情报碎片id数组
     is_merged BOOLEAN DEFAULT FALSE,                    -- 是否为流言嫁接
     
-    ferment_stage INTEGER DEFAULT 0 CHECK (ferment_stage BETWEEN 0 AND 3), -- 发酵阶段 0-3
-    stage_0_at TIMESTAMPTZ DEFAULT NOW(),
-    stage_1_at TIMESTAMPTZ,
+    stage INTEGER DEFAULT 1 CHECK (stage BETWEEN 1 AND 3), -- 发酵阶段 1-3
+    stage_1_at TIMESTAMPTZ DEFAULT NOW(),
     stage_2_at TIMESTAMPTZ,
     stage_3_at TIMESTAMPTZ,
     
@@ -216,11 +215,11 @@ CREATE TABLE IF NOT EXISTS maid_loyalty (
 );
 
 -- ## 三、索引优化
--- 为高频查询字段加索引 (game_id, player_uid, status, ferment_stage)
+-- 为高频查询字段加索引 (game_id, player_uid, status, stage)
 CREATE INDEX IF NOT EXISTS idx_intel_fragments_game_owner ON intel_fragments(game_id, owner_uid);
 CREATE INDEX IF NOT EXISTS idx_eavesdrop_sessions_player ON eavesdrop_sessions(player_uid, status);
 CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_uid, status);
-CREATE INDEX IF NOT EXISTS idx_rumors_game_stage ON rumors(game_id, ferment_stage);
+CREATE INDEX IF NOT EXISTS idx_rumors_game_stage ON rumors(game_id, stage);
 CREATE INDEX IF NOT EXISTS idx_rumors_target ON rumors(target_uid);
 CREATE INDEX IF NOT EXISTS idx_intel_trades_buyer ON intel_trades(buyer_uid);
 CREATE INDEX IF NOT EXISTS idx_maid_relationships_players ON maid_relationships(player_a_uid, player_b_uid);

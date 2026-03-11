@@ -16,7 +16,7 @@ func _ready() -> void:
 	GameState.deficit_changed.connect(_on_deficit_changed)
 	GameState.conflict_changed.connect(_on_conflict_changed)
 	PlayerState.silver_changed.connect(_on_silver_changed)
-	PlayerState.qi_shu_changed.connect(_on_qi_shu_changed)
+	PlayerState.qi_points_changed.connect(_on_qi_points_changed)
 	PlayerState.stamina_changed.connect(_on_stamina_changed)
 
 func _init_top_bar() -> void:
@@ -28,7 +28,7 @@ func _init_player_info() -> void:
 	character_name_label.text = PlayerState.character_name
 	role_class_label.text = PlayerState.role_class
 	silver_label.text = str(PlayerState.silver)
-	qi_shu_label.text = str(PlayerState.qi_shu)
+	qi_shu_label.text = str(PlayerState.qi_points)
 
 func _on_deficit_changed(new_value: float) -> void:
 	deficit_bar.value = new_value
@@ -39,7 +39,7 @@ func _on_conflict_changed(new_value: float) -> void:
 func _on_silver_changed(new_value: int) -> void:
 	silver_label.text = str(new_value)
 
-func _on_qi_shu_changed(new_value: int) -> void:
+func _on_qi_points_changed(new_value: int) -> void:
 	qi_shu_label.text = str(new_value)
 
 func _on_stamina_changed(_new_value: int) -> void:
