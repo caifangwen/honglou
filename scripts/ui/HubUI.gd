@@ -63,6 +63,9 @@ func _on_RumorBoardBtn_pressed() -> void:
 func _on_PoetryHallBtn_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/PoetryHall.tscn")
 
+func _on_TimePanelBtn_pressed() -> void:
+	get_tree().change_scene_to_file("res://ui/TimePanel.tscn")
+
 func _on_MarketBtn_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/market/BridgeMarket.tscn")
 
