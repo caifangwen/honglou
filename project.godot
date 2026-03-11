@@ -25,6 +25,8 @@ EventBus="*res://scripts/autoload/EventBus.gd"
 SupabaseManager="*res://scripts/autoload/SupabaseManager.gd"
 StaminaManager="*res://scripts/autoload/StaminaManager.gd"
 EavesdropManager="*res://scripts/autoload/EavesdropManager.gd"
+RelationshipManager="*res://scripts/autoload/RelationshipManager.gd"
+MaidProgressionChecker="*res://scripts/autoload/MaidProgressionChecker.gd"
 
 [physics]
 

@@ -108,6 +108,7 @@ func _on_confirm_btn_pressed() -> void:
 	# 写入 players 表 
 	var response = await SupabaseManager.db_insert("players", { 
 		"auth_uid":        SupabaseManager.current_uid, 
+		"username":        SupabaseManager.last_username,
 		"display_name":    char_name, 
 		"character_name":  char_name, 
 		"role_class":      selected_role, 

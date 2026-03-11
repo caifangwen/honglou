@@ -36,4 +36,7 @@ signal relation_changed(uid_a: String, uid_b: String, relation_type: String)
 
 # 系统通用信号
 signal show_notification(message: String)
+signal notify_player(message: String)
+signal trigger_ending_narrative(ending_id: String)
+signal broadcast_message(message: String)
 

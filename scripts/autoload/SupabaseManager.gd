@@ -4,16 +4,51 @@ extends Node
 var access_token: String = "" 
 var refresh_token: String = "" 
 var current_uid: String = "" 
- 
+var last_username: String = "" # 记录最近一次尝试登录/注册的用户名
+
+# Realtime 相关
+var _ws: WebSocketPeer = WebSocketPeer.new()
+var _is_ws_connected: bool = false
+var _ws_ref: int = 1
+var _subscriptions: Dictionary = {} # table_name -> ref
+var _heartbeat_timer: float = 0.0
+const HEARTBEAT_INTERVAL: float = 30.0
+
 signal auth_success(uid) 
 signal auth_error(message) 
 signal request_completed(endpoint, response_code, data) 
 signal request_failed(endpoint, error) 
- 
+signal realtime_update(table_name, data)
+
+func _ready():
+	set_process(true)
+
+func _process(delta):
+	if _is_ws_connected:
+		_ws.poll()
+		var state = _ws.get_ready_state()
+		if state == WebSocketPeer.STATE_OPEN:
+			# 处理心跳
+			_heartbeat_timer += delta
+			if _heartbeat_timer >= HEARTBEAT_INTERVAL:
+				_heartbeat_timer = 0.0
+				_send_ws("phoenix", "heartbeat", {})
+
+			while _ws.get_available_packet_count() > 0:
+				var packet = _ws.get_packet()
+				var message = packet.get_string_from_utf8()
+				_on_ws_message(message)
+		elif state == WebSocketPeer.STATE_CLOSED:
+			_is_ws_connected = false
+			var code = _ws.get_close_code()
+			var reason = _ws.get_close_reason()
+			print("[Supabase Realtime] WebSocket closed: ", code, " - ", reason)
+
 # ───────────────────────────────────────── 
 # 认证：注册 
 # ───────────────────────────────────────── 
 func sign_up(email, password): 
+	last_username = email.split("@")[0] # 默认用户名取邮箱前缀
 	var body = JSON.stringify({"email": email, "password": password}) 
 	_post(GameConfig.API_AUTH_SIGNUP, body, false) 
  
@@ -21,8 +56,22 @@ func sign_up(email, password):
 # 认证：登录 
 # ───────────────────────────────────────── 
 func sign_in(email, password): 
+	if last_username == "": last_username = email.split("@")[0]
 	var body = JSON.stringify({"email": email, "password": password}) 
 	_post(GameConfig.API_AUTH_LOGIN, body, false) 
+
+# 用户名登录逻辑
+func sign_in_with_username(username, password):
+	last_username = username
+	# 1. 调用 RPC 获取 email (无需 Auth，因为还没登录)
+	var res = await db_rpc("get_email_by_username", {"p_username": username}, false)
+	if res["code"] == 200 and res["data"] is String and res["data"] != "":
+		var email = res["data"]
+		sign_in(email, password)
+	else:
+		var err = "找不到该用户或网络错误"
+		auth_error.emit(err)
+		push_error("[Supabase] Username login failed: " + err)
  
 # ───────────────────────────────────────── 
 # 数据库：查询（GET） 
@@ -57,9 +106,9 @@ func db_update(table, filter, data):
 # ───────────────────────────────────────── 
 # 数据库：RPC（POST to /rpc/） 
 # ───────────────────────────────────────── 
-func db_rpc(function_name: String, params: Dictionary = {}):
+func db_rpc(function_name: String, params: Dictionary = {}, with_auth: bool = true):
 	var body = JSON.stringify(params)
-	return await _post("/rest/v1/rpc/" + function_name, body, true)
+	return await _post("/rest/v1/rpc/" + function_name, body, with_auth)
  
 # ───────────────────────────────────────── 
 # 内部：构建请求头 
@@ -157,11 +206,86 @@ func _on_request_completed_async(result, response_code, _headers, body, http, en
  
 	# 登录/注册成功：缓存 token 
 	if parsed is Dictionary and parsed.has("access_token"): 
-		access_token = parsed["access_token"] 
-		refresh_token = parsed.get("refresh_token", "") 
-		current_uid = parsed.get("user", {}).get("id", "") 
+		access_token = str(parsed.get("access_token", "")) 
+		refresh_token = str(parsed.get("refresh_token", "")) 
+		var user_data = parsed.get("user", {})
+		if user_data is Dictionary:
+			current_uid = str(user_data.get("id", ""))
+			if last_username == "":
+				last_username = str(user_data.get("email", "")).split("@")[0]
 		auth_success.emit(current_uid) 
  
 	var response = {"code": response_code, "data": parsed}
 	request_completed.emit(endpoint, response_code, parsed) 
+
+	# 登录成功后自动连接实时更新
+	if parsed is Dictionary and parsed.has("access_token"):
+		_connect_realtime()
+
 	return response
+
+# ───────────────────────────────────────── 
+# Realtime 核心逻辑 (Minimal Phoenix Protocol)
+# ───────────────────────────────────────── 
+
+func _connect_realtime():
+	if _is_ws_connected: return
+	
+	var ws_url = GameConfig.SUPABASE_URL.replace("https://", "wss://") + "/realtime/v1/websocket?apikey=" + GameConfig.SUPABASE_ANON_KEY + "&vsn=1.0.0"
+	
+	# Godot 4 中默认使用 TLSOptions.client() 即可
+	# 如果仍然有 TLS 握手错误，可能需要检查系统证书或防火墙
+	var err = _ws.connect_to_url(ws_url)
+	if err != OK:
+		push_error("[Supabase Realtime] WebSocket connection failed: " + str(err))
+		return
+	
+	_is_ws_connected = true
+	print("[Supabase Realtime] Connecting to WebSocket...")
+
+func subscribe_to_table(table_name: String):
+	if not _is_ws_connected:
+		_connect_realtime()
+		# 等待连接成功
+		await get_tree().create_timer(1.0).timeout
+	
+	var topic = "realtime:public:" + table_name
+	_subscriptions[table_name] = str(_ws_ref)
+	_send_ws(topic, "phx_join", {})
+	print("[Supabase Realtime] Subscribed to table: ", table_name)
+
+func _send_ws(topic: String, event: String, payload: Dictionary):
+	if _ws.get_ready_state() != WebSocketPeer.STATE_OPEN:
+		return
+		
+	var msg = {
+		"topic": topic,
+		"event": event,
+		"payload": payload,
+		"ref": str(_ws_ref)
+	}
+	_ws.send_text(JSON.stringify(msg))
+	_ws_ref += 1
+
+func _on_ws_message(message: String):
+	var parsed = JSON.parse_string(message)
+	if parsed == null: return
+	
+	var topic = parsed.get("topic", "")
+	var event = parsed.get("event", "")
+	var payload = parsed.get("payload", {})
+	
+	# 心跳保持
+	if topic == "phoenix" and event == "heartbeat":
+		return
+	
+	# 处理数据变更
+	if event == "postgres_changes":
+		var table = payload.get("data", {}).get("table", "")
+		realtime_update.emit(table, payload.get("data", {}))
+		print("[Supabase Realtime] Data change in ", table)
+
+# 定时心跳
+func _on_heartbeat_timer():
+	if _is_ws_connected and _ws.get_ready_state() == WebSocketPeer.STATE_OPEN:
+		_send_ws("phoenix", "heartbeat", {})

@@ -52,6 +52,9 @@ func _setup_ui():
 	_create_header("🗳️ 言官投票区")
 	_setup_voting_area()
 	
+	_create_header("🔍 情报与关系调试区")
+	_setup_intel_relation_area()
+	
 	_create_header("🌿 双路线状态区")
 	_setup_route_area()
 	
@@ -498,6 +501,182 @@ func _setup_audit_area():
 	h3.add_child(btn_v3)
 	
 	_refresh_audit_ui()
+
+# --- 情报与关系调试区 ---
+
+func _setup_intel_relation_area():
+	var vbox = VBoxContainer.new()
+	content_vbox.add_child(vbox)
+	
+	# --- 情报测试 ---
+	var label_intel = Label.new()
+	label_intel.text = "【情报碎片测试】"
+	label_intel.add_theme_color_override("font_color", Color.AQUA)
+	vbox.add_child(label_intel)
+	
+	var h1 = HBoxContainer.new()
+	vbox.add_child(h1)
+	
+	var btn_start_session = Button.new()
+	btn_start_session.text = "🆕 开启模拟监听会话"
+	btn_start_session.pressed.connect(_on_debug_start_session)
+	h1.add_child(btn_start_session)
+	
+	var btn_gen_intel = Button.new()
+	btn_gen_intel.text = "⚡ 触发情报生成"
+	btn_gen_intel.pressed.connect(_on_debug_generate_intel)
+	h1.add_child(btn_gen_intel)
+	
+	var btn_fetch_intel = Button.new()
+	btn_fetch_intel.text = "📥 查看我的情报列表"
+	btn_fetch_intel.pressed.connect(_on_debug_fetch_intel)
+	h1.add_child(btn_fetch_intel)
+	
+	vbox.add_child(HSeparator.new())
+	
+	# --- 关系测试 ---
+	var label_rel = Label.new()
+	label_rel.text = "【对食/私约关系测试】"
+	label_rel.add_theme_color_override("font_color", Color.ORANGE_RED)
+	vbox.add_child(label_rel)
+	
+	var h2 = HBoxContainer.new()
+	vbox.add_child(h2)
+	
+	var btn_sim_req = Button.new()
+	btn_sim_req.text = "💌 模拟收到对食申请"
+	btn_sim_req.pressed.connect(_on_debug_simulate_request)
+	h2.add_child(btn_sim_req)
+	
+	var btn_betray = Button.new()
+	btn_betray.text = "🔪 立即背叛搭档"
+	btn_betray.pressed.connect(_on_debug_betray)
+	h2.add_child(btn_betray)
+	
+	vbox.add_child(HSeparator.new())
+	
+	# --- 忠诚度与弃主测试 ---
+	var label_loyalty = Label.new()
+	label_loyalty.text = "【忠诚度与弃主投靠测试】"
+	label_loyalty.add_theme_color_override("font_color", Color.GOLD)
+	vbox.add_child(label_loyalty)
+	
+	var h3 = HBoxContainer.new()
+	vbox.add_child(h3)
+	
+	var btn_add_abandon = Button.new()
+	btn_add_abandon.text = "📈 增加背叛次数 (+1)"
+	btn_add_abandon.pressed.connect(_on_debug_add_abandon)
+	h3.add_child(btn_add_abandon)
+	
+	var btn_abandon_master = Button.new()
+	btn_abandon_master.text = "🏃 弃主投靠 (模拟)"
+	btn_abandon_master.pressed.connect(_on_debug_abandon_master)
+	h3.add_child(btn_abandon_master)
+	
+	var btn_reset_disgrace = Button.new()
+	btn_reset_disgrace.text = "🧹 重置声名狼藉状态"
+	btn_reset_disgrace.pressed.connect(_on_debug_reset_disgrace)
+	h3.add_child(btn_reset_disgrace)
+
+# --- 调试面板回调逻辑 ---
+
+var last_debug_session_id: String = ""
+
+func _on_debug_start_session():
+	var success = await EavesdropManager.start_eavesdrop(PlayerState.uid, "yi_hong_yuan", 2)
+	if success:
+		# 获取刚刚创建的会话 ID
+		var res = await SupabaseManager.db_get("/rest/v1/eavesdrop_sessions?player_uid=eq.%s&order=created_at.desc&limit=1" % PlayerState.uid)
+		if res["code"] == 200 and not res["data"].is_empty():
+			last_debug_session_id = res["data"][0]["id"]
+			_log("已开启监听会话: %s" % last_debug_session_id, "ACTION")
+	else:
+		_log("开启监听会话失败", "CRITICAL")
+
+func _on_debug_generate_intel():
+	if last_debug_session_id == "":
+		# 尝试自动获取一个
+		var res = await SupabaseManager.db_get("/rest/v1/eavesdrop_sessions?player_uid=eq.%s&status=eq.active&limit=1" % PlayerState.uid)
+		if res["code"] == 200 and not res["data"].is_empty():
+			last_debug_session_id = res["data"][0]["id"]
+		else:
+			_log("请先开启监听会话", "CRITICAL")
+			return
+			
+	_log("正在为会话 %s 生成情报 (强制生成)..." % last_debug_session_id, "SYSTEM")
+	await EavesdropManager.generate_intel_fragment(last_debug_session_id, true)
+	_log("情报生成指令已发送", "ACTION")
+
+func _on_debug_fetch_intel():
+	var res = await SupabaseManager.db_get("/rest/v1/intel_fragments?player_uid=eq.%s&order=created_at.desc&limit=5" % PlayerState.uid)
+	if res["code"] == 200:
+		_log("--- 最近 5 条情报 ---", "SYSTEM")
+		for frag in res["data"]:
+			_log("[%s] %s (价值: %d)" % [frag["intel_type"], frag["content"], frag["value_level"]], "INFO")
+	else:
+		_log("获取情报失败", "CRITICAL")
+
+func _on_debug_simulate_request():
+	# 模拟一个来自 dummy_user 的对食申请
+	var dummy_uid = "00000000-0000-0000-0000-000000000000"
+	var insert_data = {
+		"player_a_uid": dummy_uid,
+		"player_b_uid": PlayerState.uid,
+		"relation_type": "dui_shi",
+		"status": "pending",
+		"shared_intel_ids": []
+	}
+	var res = await SupabaseManager.db_insert("maid_relationships", insert_data)
+	if res["code"] == 201:
+		_log("已模拟收到来自 [系统测试员] 的对食申请", "ACTION")
+		EventBus.show_notification.emit("你收到了新的对食申请")
+	else:
+		_log("模拟申请失败: " + str(res["error"]), "CRITICAL")
+
+func _on_debug_betray():
+	var rel = await RelationshipManager.get_current_relationship(PlayerState.uid)
+	if rel.is_empty():
+		_log("当前没有活跃的对食/私约关系", "CRITICAL")
+		return
+	
+	_log("正在背叛搭档...", "ACTION")
+	await RelationshipManager.betray_partner(rel["id"], PlayerState.uid)
+	_log("背叛操作已完成", "CRITICAL")
+
+func _on_debug_add_abandon():
+	var res = await SupabaseManager.db_get("/rest/v1/maid_loyalty?maid_uid=eq." + PlayerState.uid)
+	if res["code"] == 200 and not res["data"].is_empty():
+		var l_data = res["data"][0]
+		var new_count = l_data.get("abandon_count", 0) + 1
+		await SupabaseManager.db_update("maid_loyalty", "id=eq." + str(l_data["id"]), {"abandon_count": new_count})
+		_log("背叛次数增加至: %d" % new_count, "RESOURCE")
+		await RelationshipManager.check_disgrace(PlayerState.uid)
+	else:
+		_log("未找到忠诚度记录", "CRITICAL")
+
+func _on_debug_abandon_master():
+	# 模拟弃主投靠
+	var dummy_old_master = "old-master-uid"
+	var dummy_new_master = "new-master-uid"
+	_log("尝试弃主投靠...", "ACTION")
+	var success = await RelationshipManager.abandon_master(PlayerState.uid, dummy_old_master, dummy_new_master)
+	if success:
+		_log("弃主投靠成功，当前忠诚度: 50", "RESOURCE")
+	else:
+		_log("弃主投靠失败（可能已声名狼藉）", "CRITICAL")
+
+func _on_debug_reset_disgrace():
+	var res = await SupabaseManager.db_get("/rest/v1/maid_loyalty?maid_uid=eq." + PlayerState.uid)
+	if res["code"] == 200 and not res["data"].is_empty():
+		var l_id = res["data"][0]["id"]
+		await SupabaseManager.db_update("maid_loyalty", "id=eq." + str(l_id), {
+			"abandon_count": 0,
+			"is_disgraced": false
+		})
+		_log("声名狼藉状态已清除，背叛次数重置为 0", "SYSTEM")
+	else:
+		_log("未找到记录", "CRITICAL")
 
 func _on_audit_report():
 	audit_status = "filed"

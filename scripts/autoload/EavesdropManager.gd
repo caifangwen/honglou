@@ -43,6 +43,21 @@ const SCENE_CONFIGS = {
 # 核心方法
 # ─────────────────────────────────────────
 
+func _ready():
+	SupabaseManager.realtime_update.connect(_on_realtime_update)
+	# 监听情报碎片表
+	SupabaseManager.subscribe_to_table("intel_fragments")
+
+func _on_realtime_update(table_name: String, data: Dictionary):
+	if table_name == "intel_fragments" and data.get("eventType") == "INSERT":
+		var record = data.get("new", {})
+		if record.get("player_uid", "") == PlayerState.uid:
+			var content = record.get("content", "听到了些闲谈。")
+			var msg = "【新情报】" + content
+			if EventBus.has_signal("show_notification"):
+				EventBus.emit_signal("show_notification", msg)
+			print("[Eavesdrop] Received realtime intel: ", content)
+
 # 开始挂机
 func start_eavesdrop(player_uid: String, scene: String, duration_hours: int, partner_uid: String = "") -> bool:
 	# 1. 检查精力是否足够 (调用 StaminaManager 或直接查询)
@@ -84,7 +99,7 @@ func start_eavesdrop(player_uid: String, scene: String, duration_hours: int, par
 	return true
 
 # 生成情报碎片 (由本地定时器或后端调用)
-func generate_intel_fragment(session_id: String) -> void:
+func generate_intel_fragment(session_id: String, force: bool = false) -> void:
 	# 1. 获取会话信息
 	var res = await SupabaseManager.db_get("/rest/v1/eavesdrop_sessions?id=eq.%s&select=*" % session_id)
 	if res["code"] != 200 or res["data"].is_empty():
@@ -97,7 +112,7 @@ func generate_intel_fragment(session_id: String) -> void:
 	
 	# 2. 触发率判定
 	var trigger_rate = config["base_rate"] * session["success_rate_mod"]
-	if randf() > trigger_rate:
+	if not force and randf() > trigger_rate:
 		return # 未触发
 	
 	# 3. 获取其他玩家最近行动 (actions 日志表，最近48小时)

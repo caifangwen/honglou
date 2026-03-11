@@ -19,8 +19,11 @@ func _ready() -> void:
 func _on_login_btn_pressed() -> void: 
 	_is_signing_in = true
 	_set_loading(true) 
-	SupabaseManager.sign_in(email_input.text.strip_edges(), 
-							password_input.text) 
+	var input = email_input.text.strip_edges()
+	if "@" in input:
+		SupabaseManager.sign_in(input, password_input.text) 
+	else:
+		SupabaseManager.sign_in_with_username(input, password_input.text)
   
 func _on_register_btn_pressed() -> void: 
 	_is_signing_in = false

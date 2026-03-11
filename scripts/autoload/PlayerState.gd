@@ -5,6 +5,7 @@ extends Node
 # 玩家基础属性
 var uid: String = ""
 var display_name: String = ""
+var username: String = ""
 var role_class: String = ""      # "steward" | "master" | "servant" | "elder" | "guest"
 var character_name: String = ""  # 扮演的角色名（如"王熙凤"、"晴雯"）
 
@@ -44,19 +45,24 @@ signal prestige_changed(new_val: int)
 # 新增：从数据库返回的完整数据初始化 
 func load_from_db(row: Dictionary) -> void: 
 	# 先执行基础初始化，再用数据库数据覆盖
-	initialize(row.get("role_class", "")) 
+	initialize(_safe_get(row, "role_class", "")) 
 	
-	player_db_id    = row.get("id", "") 
-	display_name    = row.get("display_name", "") 
-	character_name  = row.get("character_name", "") 
-	current_game_id = row.get("current_game_id", "") 
-	stamina         = row.get("stamina", stamina) 
-	stamina_max     = row.get("stamina_max", stamina_max) 
-	qi_shu          = row.get("qi_shu", qi_shu) 
-	silver          = row.get("silver", silver) 
-	face_value      = row.get("face_value", face_value) 
-	prestige        = row.get("prestige", prestige) 
-	loyalty         = row.get("loyalty", loyalty) 
+	player_db_id    = _safe_get(row, "id", "") 
+	display_name    = _safe_get(row, "display_name", "") 
+	username        = _safe_get(row, "username", "") 
+	character_name  = _safe_get(row, "character_name", "") 
+	current_game_id = _safe_get(row, "current_game_id", "") 
+	stamina         = _safe_get(row, "stamina", stamina) 
+	stamina_max     = _safe_get(row, "stamina_max", stamina_max) 
+	qi_shu          = _safe_get(row, "qi_shu", qi_shu) 
+	silver          = _safe_get(row, "silver", silver) 
+	face_value      = _safe_get(row, "face_value", face_value) 
+	prestige        = _safe_get(row, "prestige", prestige) 
+	loyalty         = _safe_get(row, "loyalty", loyalty) 
+
+func _safe_get(dict: Dictionary, key: String, default: Variant) -> Variant:
+	var val = dict.get(key)
+	return val if val != null else default
 
 func initialize(role: String) -> void:
 	role_class = role
