@@ -1,0 +1,146 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/market/BridgeMarketUI.gd" id="1_ui"]
+
+[node name="BridgeMarket" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ui")
+
+[node name="VBoxMain" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TopBar" type="HBoxContainer" parent="VBoxMain"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="BackBtn" type="Button" parent="VBoxMain/TopBar"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "返回"
+
+[node name="Title" type="Label" parent="VBoxMain/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "蜂腰桥集市"
+horizontal_alignment = 1
+
+[node name="Control" type="Control" parent="VBoxMain/TopBar"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+
+[node name="TabContainer" type="TabContainer" parent="VBoxMain"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Browse" type="VBoxContainer" parent="VBoxMain/TabContainer"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxMain/TabContainer/Browse"]
+layout_mode = 2
+
+[node name="TypeFilter" type="OptionButton" parent="VBoxMain/TabContainer/Browse/HBoxContainer"]
+layout_mode = 2
+item_count = 1
+popup/item_0/text = "所有类型"
+
+[node name="SortOrder" type="OptionButton" parent="VBoxMain/TabContainer/Browse/HBoxContainer"]
+layout_mode = 2
+item_count = 1
+popup/item_0/text = "最新挂单"
+
+[node name="Control" type="Control" parent="VBoxMain/TabContainer/Browse/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SilverLabel" type="Label" parent="VBoxMain/TabContainer/Browse/HBoxContainer"]
+layout_mode = 2
+text = "银两: 0"
+
+[node name="QiLabel" type="Label" parent="VBoxMain/TabContainer/Browse/HBoxContainer"]
+layout_mode = 2
+text = "气数: 0"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxMain/TabContainer/Browse"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="GridContainer" type="GridContainer" parent="VBoxMain/TabContainer/Browse/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 1
+
+[node name="MySales" type="VBoxContainer" parent="VBoxMain/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="ListNewBtn" type="Button" parent="VBoxMain/TabContainer/MySales"]
+layout_mode = 2
+text = "挂出新情报"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxMain/TabContainer/MySales"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxMain/TabContainer/MySales/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PurchaseConfirmPanel" type="Panel" parent="."]
+visible = false
+custom_minimum_size = Vector2(400, 300)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="PurchaseConfirmPanel"]
+layout_mode = 1
+anchors_preset = 15
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="Title" type="Label" parent="PurchaseConfirmPanel/VBox"]
+layout_mode = 2
+text = "确认购买"
+horizontal_alignment = 1
+
+[node name="IntelTypeLabel" type="Label" parent="PurchaseConfirmPanel/VBox"]
+layout_mode = 2
+text = "情报类型: [未知]"
+horizontal_alignment = 1
+
+[node name="PriceLabel" type="Label" parent="PurchaseConfirmPanel/VBox"]
+layout_mode = 2
+text = "价格: [未知]"
+horizontal_alignment = 1
+
+[node name="Warning" type="Label" parent="PurchaseConfirmPanel/VBox"]
+layout_mode = 2
+text = "购买后方可查看具体内容"
+horizontal_alignment = 1
+
+[node name="HBox" type="HBoxContainer" parent="PurchaseConfirmPanel/VBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmBtn" type="Button" parent="PurchaseConfirmPanel/VBox/HBox"]
+layout_mode = 2
+text = "确认购买"
+
+[node name="CancelBtn" type="Button" parent="PurchaseConfirmPanel/VBox/HBox"]
+layout_mode = 2
+text = "取消"

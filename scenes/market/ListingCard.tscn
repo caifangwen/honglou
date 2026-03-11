@@ -1,0 +1,55 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/market/ListingCard.gd" id="1_card"]
+
+[node name="ListingCard" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 80)
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 80.0
+grow_horizontal = 2
+theme_type_variation = &"FlatPanel"
+script = ExtResource("1_card")
+
+[node name="HBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="TypeIcon" type="Label" parent="HBox"]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "[?]"
+horizontal_alignment = 1
+
+[node name="TypeLabel" type="Label" parent="HBox"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "情报类型"
+horizontal_alignment = 1
+
+[node name="StarsLabel" type="Label" parent="HBox"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.843137, 0, 1)
+text = "★★★☆☆"
+horizontal_alignment = 1
+
+[node name="PriceLabel" type="Label" parent="HBox"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "10 两"
+horizontal_alignment = 1
+
+[node name="VSeparator" type="VSeparator" parent="HBox"]
+layout_mode = 2
+
+[node name="PreviewBtn" type="Button" parent="HBox"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "预览"
+
+[node name="BuyBtn" type="Button" parent="HBox"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "购买"

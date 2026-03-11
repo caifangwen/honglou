@@ -53,6 +53,13 @@ func db_insert(table, data):
 func db_update(table, filter, data): 
 	var body = JSON.stringify(data) 
 	return await _patch("/rest/v1/" + table + "?" + filter, body) 
+
+# ───────────────────────────────────────── 
+# 数据库：RPC（POST to /rpc/） 
+# ───────────────────────────────────────── 
+func db_rpc(function_name: String, params: Dictionary = {}):
+	var body = JSON.stringify(params)
+	return await _post("/rest/v1/rpc/" + function_name, body, true)
  
 # ───────────────────────────────────────── 
 # 内部：构建请求头 
