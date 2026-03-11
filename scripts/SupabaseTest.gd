@@ -43,13 +43,13 @@ func _on_supabase_request_completed(endpoint: String, response_code: int, result
         "treasury":
             if result.size() > 0:
                 var treasury = result[0]
-                treasury_id = treasury.get("id")
-                treasury_real_balance = treasury.get("real_balance")
-                print("   [Treasury] 明账余额 (public_balance): ", treasury.get("public_balance"))
-                print("   [Treasury] 暗账余额 (real_balance): ", treasury_real_balance)
+                # treasury_id = treasury.get("id") # SQL 中 game_id 是 PK
+                # treasury_real_balance = treasury.get("real_balance")
+                print("   [Treasury] 总银两 (total_silver): ", treasury.get("total_silver"))
+                print("   [Treasury] 亏空率 (deficit_rate): ", treasury.get("deficit_rate"))
                 
-                # 触发"管家克扣"测试
-                print("3. 执行'管家克扣'测试: real_balance -= 200")
+                # 触发"管家克扣"测试 (模拟减少 total_silver)
+                print("3. 执行'管家克扣'测试: total_silver -= 200")
                 _perform_deduction_test()
             else:
                 print("   [Treasury] 未找到数据。")
@@ -67,13 +67,12 @@ func _on_supabase_request_failed(endpoint: String, error_message: String) -> voi
     printerr("   [ERROR] ", endpoint, ": ", error_message)
 
 func _perform_deduction_test() -> void:
-    if treasury_id == "": return
-    
-    # A. 更新 treasury 的 real_balance
-    var new_balance = treasury_real_balance - 200
-    SupabaseManager.update_table("treasury", "id=eq." + treasury_id, {"real_balance": new_balance})
+    # A. 更新 treasury 的 total_silver
+    # 注意：在当前 SQL 结构中，game_id 是 PK
+    SupabaseManager.update_table("treasury", "game_id=eq." + test_game_id, {"total_silver": 9800})
     
     # B. 插入 ledger_entries 记录
+    # (假设管家账户记录)
     var entry = {
         "game_id": test_game_id,
         "treasury_id": treasury_id,

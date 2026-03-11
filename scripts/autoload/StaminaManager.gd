@@ -9,9 +9,7 @@ func get_current_stamina(uid: String) -> int:
 	# 1. 向服务器获取原始数据
 	# 使用 SupabaseManager 执行查询
 	var endpoint = "/rest/v1/steward_stamina?uid=eq.%s&select=*" % uid
-	SupabaseManager.db_get(endpoint)
-	
-	var response = await SupabaseManager.request_complete
+	var response = await SupabaseManager.db_get(endpoint)
 	if response["code"] != 200:
 		push_error("[StaminaManager] 获取精力失败: " + str(response))
 		return 0
@@ -47,9 +45,8 @@ func execute_steward_action(action_type: String, target_uid: String, params: Dic
 	
 	# 调用 execute-action Edge Function
 	var url = "/functions/v1/execute-action"
-	SupabaseManager._post(url, JSON.stringify(body), true)
+	var response = await SupabaseManager._post(url, JSON.stringify(body), true)
 	
-	var response = await SupabaseManager.request_complete
 	if response["code"] == 200:
 		# 更新本地精力缓存（如果需要）
 		get_current_stamina(SupabaseManager.current_uid)

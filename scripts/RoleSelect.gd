@@ -54,8 +54,6 @@ func _ready() -> void:
 	confirm_btn.disabled = true 
 	selected_info_panel.hide() 
 	error_label.hide() 
-	SupabaseManager.request_complete.connect(_on_insert_complete) 
-	SupabaseManager.request_failed.connect(_on_insert_failed) 
   
 	# 绑定每个阶层卡片的点击 
 	for role_key in ROLE_DATA: 
@@ -108,7 +106,7 @@ func _on_confirm_btn_pressed() -> void:
 	var role_d = ROLE_DATA[selected_role] 
   
 	# 写入 players 表 
-	SupabaseManager.db_insert("players", { 
+	var response = await SupabaseManager.db_insert("players", { 
 		"auth_uid":        SupabaseManager.current_uid, 
 		"display_name":    char_name, 
 		"character_name":  char_name, 
@@ -117,7 +115,12 @@ func _on_confirm_btn_pressed() -> void:
 		"stamina_max":     role_d["stamina"], 
 		"current_game_id": "00000000-0000-0000-0000-000000000001"  # 测试局 
 	}) 
-  
+	
+	if response["code"] == 201:
+		_on_insert_complete(response)
+	else:
+		_on_insert_failed(response.get("error", "未知错误"))
+
 func _on_insert_complete(response: Dictionary) -> void: 
 	var data = response["data"] 
 	# Supabase 插入返回数组 

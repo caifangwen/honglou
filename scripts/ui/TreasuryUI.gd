@@ -33,25 +33,31 @@ func _refresh_data() -> void:
 		return
 
 	# 1. 获取银库
-	SupabaseManager.db_get("/rest/v1/treasury?game_id=eq.%s&select=*" % game_id)
-	var t_res = await SupabaseManager.request_complete
+	var t_res = await SupabaseManager.db_get("/rest/v1/treasury?game_id=eq.%s&select=*" % game_id)
 	if t_res["code"] == 200:
 		if t_res["data"].is_empty():
 			# 如果银库不存在，尝试初始化一条（仅限测试环境或管家首次进入）
-			_initialize_treasury(game_id)
+			await _initialize_treasury(game_id)
 		else:
 			current_treasury_data = t_res["data"][0]
 			_update_treasury_ui()
 	
 	# 2. 获取管家账户（私产、账本）
-	SupabaseManager.db_get("/rest/v1/steward_accounts?steward_uid=eq.%s&game_id=eq.%s&select=*" % [steward_uid, game_id])
-	var s_res = await SupabaseManager.request_complete
+	var s_res = await SupabaseManager.db_get("/rest/v1/steward_accounts?steward_uid=eq.%s&game_id=eq.%s&select=*" % [steward_uid, game_id])
 	if s_res["code"] == 200:
 		if s_res["data"].is_empty():
-			_initialize_steward_account(steward_uid, game_id)
+			await _initialize_steward_account(steward_uid, game_id)
 		else:
 			current_steward_data = s_res["data"][0]
 			_update_steward_ui()
+	
+	# 3. 获取精力
+	var stamina = await StaminaManager.get_current_stamina(steward_uid)
+	if stamina_label:
+		stamina_label.text = "精力: %d / 6" % stamina
+	
+	# 4. 获取待发放月例玩家列表
+	_load_player_allocation_list()
 
 func _initialize_treasury(game_id: String) -> void:
 	# 初始化银库数据
@@ -61,8 +67,7 @@ func _initialize_treasury(game_id: String) -> void:
 		"prosperity_level": 5,
 		"deficit_rate": 0.0
 	}
-	SupabaseManager.db_insert("treasury", initial_data)
-	var res = await SupabaseManager.request_complete
+	var res = await SupabaseManager.db_insert("treasury", initial_data)
 	if res["code"] == 201:
 		current_treasury_data = res["data"][0]
 		_update_treasury_ui()
@@ -77,19 +82,19 @@ func _initialize_steward_account(steward_uid: String, game_id: String) -> void:
 		"private_assets": 0,
 		"prestige": 50
 	}
-	SupabaseManager.db_insert("steward_accounts", initial_data)
-	var res = await SupabaseManager.request_complete
+	var res = await SupabaseManager.db_insert("steward_accounts", initial_data)
 	if res["code"] == 201:
 		current_steward_data = res["data"][0]
 		_update_steward_ui()
-	
-	# 3. 获取精力
-	var stamina = await StaminaManager.get_current_stamina(steward_uid)
-	if stamina_label:
-		stamina_label.text = "精力: %d / 6" % stamina
-	
-	# 4. 获取待发放月例玩家列表
-	_load_player_allocation_list()
+		
+		# 同时初始化管家精力
+		var stamina_data = {
+			"uid": steward_uid,
+			"game_id": game_id,
+			"current_stamina": 6,
+			"max_stamina": 6
+		}
+		await SupabaseManager.db_insert("steward_stamina", stamina_data)
 
 func _on_BackBtn_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
@@ -130,8 +135,7 @@ func _load_player_allocation_list() -> void:
 		return
 		
 	# 获取当前局所有玩家
-	SupabaseManager.db_get("/rest/v1/players?current_game_id=eq.%s&select=id,character_name,role_class" % GameState.current_game_id)
-	var p_res = await SupabaseManager.request_complete
+	var p_res = await SupabaseManager.db_get("/rest/v1/players?current_game_id=eq.%s&select=id,character_name,role_class" % GameState.current_game_id)
 	if p_res["code"] == 200:
 		# 清空旧列表
 		for child in player_list.get_children():
@@ -188,7 +192,7 @@ func distribute_allowance(target_uid: String, amount: int, standard: int):
 		"game_id": GameState.current_game_id
 	}
 	SupabaseManager._post("/functions/v1/distribute-allowance", JSON.stringify(body), true)
-	var res = await SupabaseManager.request_complete
+	var res = await SupabaseManager.request_completed
 	if res["code"] == 200:
 		_refresh_data()
 	else:
