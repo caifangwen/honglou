@@ -1,154 +1,145 @@
-[gd_scene load_steps=2 format=3 uid="uid://timepanel001"]
+[gd_scene load_steps=4 format=3 uid="uid://c5y1j2k3l4m5n"]
 
-[ext_resource type="Script" path="res://ui/TimePanel.gd" id="1"]
+[ext_resource type="Script" path="res://ui/TimePanel.gd" id="1_x1y2z"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_deficit"]
+bg_color = Color(0.1, 0.6, 0.1, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_friction"]
+bg_color = Color(0.1, 0.6, 0.1, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
 
 [node name="TimePanel" type="Control"]
 layout_mode = 3
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -250.0
-offset_bottom = 200.0
+offset_left = -300.0
+offset_bottom = 450.0
 grow_horizontal = 0
-script = ExtResource("1")
+script = ExtResource("1_x1y2z")
 
-[node name="PanelContainer" type="PanelContainer" parent="."]
+[node name="Background" type="NinePatchRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+patch_margin_left = 10
+patch_margin_top = 10
+patch_margin_right = 10
+patch_margin_bottom = 10
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer"]
-layout_mode = 2
-theme_override_constants/separation = 5
+[node name="MainLayout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 25.0
+offset_top = 25.0
+offset_right = -25.0
+offset_bottom = -25.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 15
 
-[node name="MainTime" type="Label" parent="PanelContainer/VBoxContainer"]
+[node name="MainTime" type="VBoxContainer" parent="MainLayout"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "三月上旬第七日"
+
+[node name="DateLabel" type="Label" parent="MainLayout/MainTime"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.1, 0, 1)
+theme_override_font_sizes/font_size = 22
+text = "「三月上旬第七日」"
 horizontal_alignment = 1
 
-[node name="Shichen" type="Label" parent="PanelContainer/VBoxContainer"]
+[node name="ShichenLabel" type="Label" parent="MainLayout/MainTime"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.15, 0.05, 1)
+theme_override_font_sizes/font_size = 18
 text = "午时"
 horizontal_alignment = 1
 
-[node name="DayProgressBar" type="ProgressBar" parent="PanelContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 4)
+[node name="DayProgress" type="ProgressBar" parent="MainLayout/MainTime"]
+custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
 value = 50.0
 show_percentage = false
 
-[node name="XunProgress" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
-layout_mode = 2
-alignment = 1
-
-[node name="XunDayLabel" type="Label" parent="PanelContainer/VBoxContainer/XunProgress"]
-layout_mode = 2
-text = "7/10"
-
-[node name="XunCountdownLabel" type="Label" parent="PanelContainer/VBoxContainer/XunProgress"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "距旬结算: 约两个时辰后"
-
-[node name="Events" type="VBoxContainer" parent="PanelContainer/VBoxContainer"]
+[node name="XunProgress" type="VBoxContainer" parent="MainLayout"]
 layout_mode = 2
 
-[node name="StaminaCountdown" type="Label" parent="PanelContainer/VBoxContainer/Events"]
+[node name="XunLabel" type="Label" parent="MainLayout/XunProgress"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "精力恢复: 约一个时辰后"
+theme_override_colors/font_color = Color(0.4, 0.2, 0.1, 1)
+text = "本旬第 7/10 日"
+horizontal_alignment = 1
 
-[node name="RumorCountdown" type="Label" parent="PanelContainer/VBoxContainer/Events"]
+[node name="XunProgressRing" type="ProgressBar" parent="MainLayout/XunProgress"]
+custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "流言到期: 无"
-
-[node name="DoomContainer" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-alignment = 1
-
-[node name="DeficitBar" type="ProgressBar" parent="PanelContainer/VBoxContainer/DoomContainer"]
-custom_minimum_size = Vector2(20, 0)
-layout_mode = 2
-size_flags_vertical = 3
+size_flags_horizontal = 4
 fill_mode = 3
-value = 20.0
 show_percentage = false
 
-[node name="ConflictBar" type="ProgressBar" parent="PanelContainer/VBoxContainer/DoomContainer"]
-custom_minimum_size = Vector2(20, 0)
-layout_mode = 2
-size_flags_vertical = 3
-fill_mode = 3
-value = 45.0
-show_percentage = false
-
-[node name="DebugControls" type="VBoxContainer" parent="PanelContainer/VBoxContainer"]
+[node name="Countdowns" type="VBoxContainer" parent="MainLayout"]
 layout_mode = 2
 theme_override_constants/separation = 5
 
-[node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer/DebugControls"]
+[node name="PoetrySection" type="HBoxContainer" parent="MainLayout/Countdowns"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="PanelContainer/VBoxContainer/DebugControls"]
+[node name="Label" type="Label" parent="MainLayout/Countdowns/PoetrySection"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.15, 0.05, 1)
 theme_override_font_sizes/font_size = 14
-text = "调试功能"
-horizontal_alignment = 1
+text = "诗社结算: 0时0刻 (约0.0小时后)"
 
-[node name="SpeedControl" type="HBoxContainer" parent="PanelContainer/VBoxContainer/DebugControls"]
+[node name="EnergySection" type="HBoxContainer" parent="MainLayout/Countdowns"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="PanelContainer/VBoxContainer/DebugControls/SpeedControl"]
+[node name="Label" type="Label" parent="MainLayout/Countdowns/EnergySection"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "倍速:"
+theme_override_colors/font_color = Color(0.3, 0.15, 0.05, 1)
+theme_override_font_sizes/font_size = 14
+text = "精力恢复: 0时0刻 (约0.0小时后)"
 
-[node name="SpeedSlider" type="HSlider" parent="PanelContainer/VBoxContainer/DebugControls/SpeedControl"]
+[node name="RumorSection" type="HBoxContainer" parent="MainLayout/Countdowns"]
+visible = false
 layout_mode = 2
-size_flags_horizontal = 3
-max_value = 4.0
-step = 1.0
-tick_count = 5
 
-[node name="SpeedValue" type="Label" parent="PanelContainer/VBoxContainer/DebugControls/SpeedControl"]
+[node name="Label" type="Label" parent="MainLayout/Countdowns/RumorSection"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "1x"
+theme_override_colors/font_color = Color(0.3, 0.15, 0.05, 1)
+theme_override_font_sizes/font_size = 14
+text = "流言到期: 0时0刻 (约0.0小时后)"
 
-[node name="JumpGrid" type="GridContainer" parent="PanelContainer/VBoxContainer/DebugControls"]
+[node name="Doomsday" type="HBoxContainer" parent="MainLayout"]
 layout_mode = 2
-columns = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 30
+alignment = 1
 
-[node name="DayJumpBtn" type="Button" parent="PanelContainer/VBoxContainer/DebugControls/JumpGrid"]
+[node name="DeficitBar" type="ProgressBar" parent="MainLayout/Doomsday"]
+custom_minimum_size = Vector2(12, 0)
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 12
-text = "+1日"
+size_flags_vertical = 3
+theme_override_styles/fill = SubResource("StyleBoxFlat_deficit")
+fill_mode = 3
+show_percentage = false
 
-[node name="XunJumpBtn" type="Button" parent="PanelContainer/VBoxContainer/DebugControls/JumpGrid"]
+[node name="FrictionBar" type="ProgressBar" parent="MainLayout/Doomsday"]
+custom_minimum_size = Vector2(12, 0)
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 12
-text = "+1旬"
-
-[node name="MonthJumpBtn" type="Button" parent="PanelContainer/VBoxContainer/DebugControls/JumpGrid"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 12
-text = "+1月"
-
-[node name="ResetDebugBtn" type="Button" parent="PanelContainer/VBoxContainer/DebugControls/JumpGrid"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 12
-text = "重置"
-
-[node name="BackButton" type="Button" parent="PanelContainer/VBoxContainer"]
-layout_mode = 2
-text = "返回主界面"
+size_flags_vertical = 3
+theme_override_styles/fill = SubResource("StyleBoxFlat_friction")
+fill_mode = 3
+show_percentage = false

@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+DebugTimePanel="*res://debug/DebugTimePanel.tscn"
 GameTime="*res://autoload/GameTime.gd"
 GameConfig="*res://scripts/data/GameConfig.gd"
 GameState="*res://scripts/autoload/GameState.gd"

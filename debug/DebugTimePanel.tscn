@@ -1,131 +1,280 @@
-[gd_scene load_steps=2 format=3 uid="uid://debugtime001"]
+[gd_scene load_steps=2 format=3 uid="uid://c8k8y4q7x3n5p"]
 
-[ext_resource type="Script" path="res://debug/DebugTimePanel.gd" id="1"]
+[ext_resource type="Script" path="res://debug/DebugTimePanel.gd" id="1_gd"]
 
-[node name="DebugTimePanel" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1")
+[node name="DebugTimePanel" type="CanvasLayer"]
+process_mode = 3
+layer = 128
+script = ExtResource("1_gd")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Panel" type="Panel" parent="."]
+self_modulate = Color(1, 1, 1, 0.8)
+custom_minimum_size = Vector2(400, 500)
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 420.0
+offset_bottom = 520.0
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.12549, 0.141176, 0.192157, 0.8)
-
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -250.0
-offset_right = 300.0
-offset_bottom = 250.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 10
 
-[node name="Title" type="Label" parent="VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "时间系统调试面板"
-horizontal_alignment = 1
-
-[node name="SpeedControl" type="HBoxContainer" parent="VBoxContainer"]
+[node name="Header" type="HBoxContainer" parent="Panel/VBox"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="VBoxContainer/SpeedControl"]
-layout_mode = 2
-text = "时间倍速: "
-
-[node name="Slider" type="HSlider" parent="VBoxContainer/SpeedControl"]
+[node name="Title" type="Label" parent="Panel/VBox/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
-max_value = 4.0
-step = 1.0
-tick_count = 5
+text = "开发调试面板 (F12)"
+horizontal_alignment = 1
 
-[node name="Value" type="Label" parent="VBoxContainer/SpeedControl"]
+[node name="ResetBtn" type="Button" parent="Panel/VBox/Header"]
 layout_mode = 2
+text = "重置全部"
+
+[node name="HSeparator" type="HSeparator" parent="Panel/VBox"]
+layout_mode = 2
+
+[node name="TimeSection" type="VBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/VBox/TimeSection"]
+layout_mode = 2
+text = "时间倍速控制"
+
+[node name="SpeedHBox" type="HBoxContainer" parent="Panel/VBox/TimeSection"]
+layout_mode = 2
+
+[node name="SpeedSlider" type="HSlider" parent="Panel/VBox/TimeSection/SpeedHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 3600.0
+value = 1.0
+
+[node name="SpeedValueLabel" type="Label" parent="Panel/VBox/TimeSection/SpeedHBox"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "1.0x"
+
+[node name="PresetsHBox" type="HBoxContainer" parent="Panel/VBox/TimeSection"]
+layout_mode = 2
+
+[node name="Btn1x" type="Button" parent="Panel/VBox/TimeSection/PresetsHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "1x"
 
-[node name="JumpControl" type="HBoxContainer" parent="VBoxContainer"]
+[node name="Btn10x" type="Button" parent="Panel/VBox/TimeSection/PresetsHBox"]
 layout_mode = 2
-alignment = 1
+size_flags_horizontal = 3
+text = "10x"
 
-[node name="DayBtn" type="Button" parent="VBoxContainer/JumpControl"]
+[node name="Btn60x" type="Button" parent="Panel/VBox/TimeSection/PresetsHBox"]
 layout_mode = 2
+size_flags_horizontal = 3
+text = "60x"
+
+[node name="Btn600x" type="Button" parent="Panel/VBox/TimeSection/PresetsHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "600x"
+
+[node name="Btn3600x" type="Button" parent="Panel/VBox/TimeSection/PresetsHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "3600x"
+
+[node name="RealTimeMapLabel" type="Label" parent="Panel/VBox/TimeSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "1现实分钟 = 1游戏分钟"
+horizontal_alignment = 1
+
+[node name="JumpHBox" type="GridContainer" parent="Panel/VBox/TimeSection"]
+layout_mode = 2
+columns = 3
+
+[node name="DayBtn" type="Button" parent="Panel/VBox/TimeSection/JumpHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "+1日"
 
-[node name="XunBtn" type="Button" parent="VBoxContainer/JumpControl"]
+[node name="XunBtn" type="Button" parent="Panel/VBox/TimeSection/JumpHBox"]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "+1旬"
 
-[node name="MonthBtn" type="Button" parent="VBoxContainer/JumpControl"]
+[node name="MonthBtn" type="Button" parent="Panel/VBox/TimeSection/JumpHBox"]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "+1月"
 
-[node name="XunSettleBtn" type="Button" parent="VBoxContainer/JumpControl"]
+[node name="PreXunBtn" type="Button" parent="Panel/VBox/TimeSection/JumpHBox"]
 layout_mode = 2
-text = "旬结算前5分"
+size_flags_horizontal = 3
+text = "旬结算前5m"
 
-[node name="MonthSettleBtn" type="Button" parent="VBoxContainer/JumpControl"]
+[node name="PreMonthBtn" type="Button" parent="Panel/VBox/TimeSection/JumpHBox"]
 layout_mode = 2
-text = "月结算前5分"
+size_flags_horizontal = 3
+text = "月结算前5m"
 
-[node name="ResetBtn" type="Button" parent="VBoxContainer/JumpControl"]
+[node name="DeficitBtn" type="Button" parent="Panel/VBox/TimeSection/JumpHBox"]
 layout_mode = 2
-text = "重置"
+size_flags_horizontal = 3
+text = "抄检触发点"
 
-[node name="DoomControl" type="VBoxContainer" parent="VBoxContainer"]
+[node name="HSeparator2" type="HSeparator" parent="Panel/VBox"]
 layout_mode = 2
 
-[node name="DeficitLabel" type="Label" parent="VBoxContainer/DoomControl"]
+[node name="ValueSection" type="VBoxContainer" parent="Panel/VBox"]
 layout_mode = 2
-text = "亏空值: 0%"
 
-[node name="DeficitSlider" type="HSlider" parent="VBoxContainer/DoomControl"]
+[node name="DeficitHBox" type="HBoxContainer" parent="Panel/VBox/ValueSection"]
 layout_mode = 2
-value = 20.0
 
-[node name="ConflictLabel" type="Label" parent="VBoxContainer/DoomControl"]
+[node name="Label" type="Label" parent="Panel/VBox/ValueSection/DeficitHBox"]
+custom_minimum_size = Vector2(80, 0)
 layout_mode = 2
-text = "内耗值: 0%"
+text = "亏空值:"
 
-[node name="ConflictSlider" type="HSlider" parent="VBoxContainer/DoomControl"]
+[node name="DeficitSlider" type="HSlider" parent="Panel/VBox/ValueSection/DeficitHBox"]
 layout_mode = 2
-value = 45.0
+size_flags_horizontal = 3
 
-[node name="EventControl" type="HBoxContainer" parent="VBoxContainer"]
+[node name="ConflictHBox" type="HBoxContainer" parent="Panel/VBox/ValueSection"]
 layout_mode = 2
-alignment = 1
 
-[node name="Event1" type="Button" parent="VBoxContainer/EventControl"]
+[node name="Label" type="Label" parent="Panel/VBox/ValueSection/ConflictHBox"]
+custom_minimum_size = Vector2(80, 0)
 layout_mode = 2
+text = "内耗值:"
+
+[node name="ConflictSlider" type="HSlider" parent="Panel/VBox/ValueSection/ConflictHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StaminaHBox" type="HBoxContainer" parent="Panel/VBox/ValueSection"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/VBox/ValueSection/StaminaHBox"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "玩家精力:"
+
+[node name="StaminaSlider" type="HSlider" parent="Panel/VBox/ValueSection/StaminaHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 8.0
+
+[node name="QiShuHBox" type="HBoxContainer" parent="Panel/VBox/ValueSection"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/VBox/ValueSection/QiShuHBox"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "玩家气数:"
+
+[node name="QiShuInput" type="LineEdit" parent="Panel/VBox/ValueSection/QiShuHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "输入数值..."
+
+[node name="HSeparator3" type="HSeparator" parent="Panel/VBox"]
+layout_mode = 2
+
+[node name="EventSection" type="VBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/VBox/EventSection"]
+layout_mode = 2
+text = "事件强制触发"
+
+[node name="EventGrid" type="GridContainer" parent="Panel/VBox/EventSection"]
+layout_mode = 2
+columns = 3
+
+[node name="Btn1" type="Button" parent="Panel/VBox/EventSection/EventGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "元妃省亲"
 
-[node name="Event2" type="Button" parent="VBoxContainer/EventControl"]
+[node name="Btn2" type="Button" parent="Panel/VBox/EventSection/EventGrid"]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "贾政检查"
 
-[node name="Event3" type="Button" parent="VBoxContainer/EventControl"]
+[node name="Btn3" type="Button" parent="Panel/VBox/EventSection/EventGrid"]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "抄检大观园"
 
-[node name="LogWindow" type="RichTextLabel" parent="VBoxContainer"]
+[node name="Btn4" type="Button" parent="Panel/VBox/EventSection/EventGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "大出殡"
+
+[node name="Btn5" type="Button" parent="Panel/VBox/EventSection/EventGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "刘姥姥进园"
+
+[node name="HSeparator4" type="HSeparator" parent="Panel/VBox"]
+layout_mode = 2
+
+[node name="LogSection" type="VBoxContainer" parent="Panel/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_font_sizes/normal_font_size = 12
+
+[node name="HBox" type="HBoxContainer" parent="Panel/VBox/LogSection"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/VBox/LogSection/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "调试日志 (最近20条)"
+
+[node name="ExportBtn" type="Button" parent="Panel/VBox/LogSection/HBox"]
+layout_mode = 2
+text = "导出日志"
+
+[node name="LogText" type="RichTextLabel" parent="Panel/VBox/LogSection"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/normal_font_size = 10
 bbcode_enabled = true
 scroll_following = true
-text = "[调试日志区]"
+
+[connection signal="pressed" from="Panel/VBox/Header/ResetBtn" to="." method="reset_all_debug_settings"]
+[connection signal="value_changed" from="Panel/VBox/TimeSection/SpeedHBox/SpeedSlider" to="." method="_on_speed_slider_changed"]
+[connection signal="pressed" from="Panel/VBox/TimeSection/PresetsHBox/Btn1x" to="." method="_on_speed_btn_pressed" binds= [1.0]]
+[connection signal="pressed" from="Panel/VBox/TimeSection/PresetsHBox/Btn10x" to="." method="_on_speed_btn_pressed" binds= [10.0]]
+[connection signal="pressed" from="Panel/VBox/TimeSection/PresetsHBox/Btn60x" to="." method="_on_speed_btn_pressed" binds= [60.0]]
+[connection signal="pressed" from="Panel/VBox/TimeSection/PresetsHBox/Btn600x" to="." method="_on_speed_btn_pressed" binds= [600.0]]
+[connection signal="pressed" from="Panel/VBox/TimeSection/PresetsHBox/Btn3600x" to="." method="_on_speed_btn_pressed" binds= [3600.0]]
+[connection signal="pressed" from="Panel/VBox/TimeSection/JumpHBox/DayBtn" to="." method="jump_to_day" binds= [2]]
+[connection signal="pressed" from="Panel/VBox/TimeSection/JumpHBox/XunBtn" to="." method="jump_time" binds= [72000.0]]
+[connection signal="pressed" from="Panel/VBox/TimeSection/JumpHBox/MonthBtn" to="." method="jump_time" binds= [216000.0]]
+[connection signal="pressed" from="Panel/VBox/TimeSection/JumpHBox/PreXunBtn" to="." method="jump_to_xun_settle_pre"]
+[connection signal="pressed" from="Panel/VBox/TimeSection/JumpHBox/PreMonthBtn" to="." method="jump_to_month_settle_pre"]
+[connection signal="pressed" from="Panel/VBox/TimeSection/JumpHBox/DeficitBtn" to="." method="jump_to_deficit_trigger"]
+[connection signal="value_changed" from="Panel/VBox/ValueSection/DeficitHBox/DeficitSlider" to="." method="_on_deficit_slider_changed"]
+[connection signal="value_changed" from="Panel/VBox/ValueSection/ConflictHBox/ConflictSlider" to="." method="_on_conflict_slider_changed"]
+[connection signal="value_changed" from="Panel/VBox/ValueSection/StaminaHBox/StaminaSlider" to="." method="_on_stamina_slider_changed"]
+[connection signal="text_submitted" from="Panel/VBox/ValueSection/QiShuHBox/QiShuInput" to="." method="_on_qi_shu_submitted"]
+[connection signal="pressed" from="Panel/VBox/EventSection/EventGrid/Btn1" to="." method="trigger_event" binds= ["元妃省亲"]]
+[connection signal="pressed" from="Panel/VBox/EventSection/EventGrid/Btn2" to="." method="trigger_event" binds= ["贾政大检查"]]
+[connection signal="pressed" from="Panel/VBox/EventSection/EventGrid/Btn3" to="." method="trigger_event" binds= ["抄检大观园"]]
+[connection signal="pressed" from="Panel/VBox/EventSection/EventGrid/Btn4" to="." method="trigger_event" binds= ["大出殡"]]
+[connection signal="pressed" from="Panel/VBox/EventSection/EventGrid/Btn5" to="." method="trigger_event" binds= ["刘姥姥进大观园"]]
+[connection signal="pressed" from="Panel/VBox/LogSection/HBox/ExportBtn" to="." method="export_logs"]

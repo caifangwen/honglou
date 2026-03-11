@@ -1,213 +1,208 @@
 extends Control
 
-## 时间面板 UI 脚本
-## 自动连接 GameTime 单例并更新显示
+## 时间面板 UI 组件
+## 负责显示当前游戏日期、时辰、旬进度及各类倒计时
 
-# 节点路径常量 (使用 @onready 替代以提高性能和稳定性)
-@onready var main_time_label: Label = $PanelContainer/VBoxContainer/MainTime
-@onready var shichen_label: Label = $PanelContainer/VBoxContainer/Shichen
-@onready var day_progress_bar: ProgressBar = $PanelContainer/VBoxContainer/DayProgressBar
-@onready var xun_day_label: Label = $PanelContainer/VBoxContainer/XunProgress/XunDayLabel
-@onready var xun_countdown_label: Label = $PanelContainer/VBoxContainer/XunProgress/XunCountdownLabel
-@onready var stamina_countdown_label: Label = $PanelContainer/VBoxContainer/Events/StaminaCountdown
-@onready var rumor_countdown_label: Label = $PanelContainer/VBoxContainer/Events/RumorCountdown
-@onready var deficit_bar: ProgressBar = $PanelContainer/VBoxContainer/DoomContainer/DeficitBar
-@onready var conflict_bar: ProgressBar = $PanelContainer/VBoxContainer/DoomContainer/ConflictBar
-@onready var events_container: VBoxContainer = $PanelContainer/VBoxContainer/Events
-@onready var doom_container: HBoxContainer = $PanelContainer/VBoxContainer/DoomContainer
-@onready var back_button: Button = $PanelContainer/VBoxContainer/BackButton
+# --- 常量 ---
+const SHICHEN_NAMES = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"]
+const MONTH_NAMES = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二"]
+const XUN_NAMES = ["上旬", "中旬", "下旬"]
+const DAY_NUMBERS = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
 
-# 调试节点
-@onready var debug_controls: VBoxContainer = $PanelContainer/VBoxContainer/DebugControls
-@onready var speed_slider: HSlider = $PanelContainer/VBoxContainer/DebugControls/SpeedControl/SpeedSlider
-@onready var speed_value_label: Label = $PanelContainer/VBoxContainer/DebugControls/SpeedControl/SpeedValue
-@onready var day_jump_btn: Button = $PanelContainer/VBoxContainer/DebugControls/JumpGrid/DayJumpBtn
-@onready var xun_jump_btn: Button = $PanelContainer/VBoxContainer/DebugControls/JumpGrid/XunJumpBtn
-@onready var month_jump_btn: Button = $PanelContainer/VBoxContainer/DebugControls/JumpGrid/MonthJumpBtn
-@onready var reset_debug_btn: Button = $PanelContainer/VBoxContainer/DebugControls/JumpGrid/ResetDebugBtn
+# --- 节点引用 (通过注释标注结构，方便美术替换) ---
+# TimePanel (Control)
+# ├── Background (NinePatchRect/TextureRect)
+# └── MainLayout (VBoxContainer)
+#     ├── MainTime (VBoxContainer)
+#     │   ├── DateLabel (Label)
+#     │   ├── ShichenLabel (Label)
+#     │   └── DayProgress (ProgressBar)
+#     ├── XunProgress (VBoxContainer)
+#     │   ├── XunLabel (Label)
+#     │   └── XunProgressRing (Control)
+#     ├── Countdowns (VBoxContainer)
+#     │   ├── PoetrySection (HBoxContainer)
+#     │   ├── EnergySection (HBoxContainer)
+#     │   └── RumorSection (HBoxContainer)
+#     └── Doomsday (HBoxContainer)
+#         ├── DeficitBar (ProgressBar)
+#         └── FrictionBar (ProgressBar)
 
-# 属性
-var visible_sections: Array[String] = ["main", "xun", "events", "doom"]
-var last_refresh_time: float = 0.0 # 从 Supabase 读取的精力刷新时间
-var current_stamina: int = 0
-var max_stamina: int = 8
+@onready var date_label: Label = $MainLayout/MainTime/DateLabel
+@onready var shichen_label: Label = $MainLayout/MainTime/ShichenLabel
+@onready var day_progress_bar: ProgressBar = $MainLayout/MainTime/DayProgress
+@onready var xun_label: Label = $MainLayout/XunProgress/XunLabel
+@onready var xun_progress_ring: Control = $MainLayout/XunProgress/XunProgressRing # 假设是一个自定义或带有进度显示的控件
+@onready var countdowns_container: VBoxContainer = $MainLayout/Countdowns
+@onready var poetry_section: HBoxContainer = $MainLayout/Countdowns/PoetrySection
+@onready var energy_section: HBoxContainer = $MainLayout/Countdowns/EnergySection
+@onready var rumor_section: HBoxContainer = $MainLayout/Countdowns/RumorSection
+@onready var deficit_bar: ProgressBar = $MainLayout/Doomsday/DeficitBar
+@onready var friction_bar: ProgressBar = $MainLayout/Doomsday/FrictionBar
 
-# 调试标记
-var is_debug_mode: bool = false
+# --- 状态变量 ---
+var _visible_sections: Array[String] = ["poetry", "energy", "rumor"]
+var _last_rumor_expiry: float = -1.0
 
 func _ready() -> void:
 	# 连接信号
 	GameTime.day_changed.connect(_on_day_changed)
 	GameTime.xun_changed.connect(_on_xun_changed)
-	GameTime.month_changed.connect(_on_month_changed)
-	
-	if OS.is_debug_build():
-		is_debug_mode = true
-		GameTime.debug_speed_changed.connect(_on_debug_speed_changed)
-		_setup_debug_controls()
-	else:
-		if debug_controls: debug_controls.hide()
-	
-	# 连接返回按钮
-	if back_button:
-		back_button.pressed.connect(_on_back_button_pressed)
+	GameState.deficit_changed.connect(_on_deficit_changed)
+	GameState.conflict_changed.connect(_on_friction_changed)
 	
 	# 初始化显示
-	_update_all_display()
+	_update_all()
+	_update_doomsday_colors()
 
 func _process(_delta: float) -> void:
-	_update_dynamic_elements()
+	_update_realtime_displays()
 
-## 控制显示哪些区域
+# --- 公开方法 ---
+
+## 设置显示的区域 (e.g. ["poetry", "energy"])
 func set_visible_sections(sections: Array[String]) -> void:
-	visible_sections = sections
-	if events_container: events_container.visible = sections.has("events")
-	if doom_container: doom_container.visible = sections.has("doom")
+	_visible_sections = sections
+	poetry_section.visible = "poetry" in sections
+	energy_section.visible = "energy" in sections
+	rumor_section.visible = "rumor" in sections
 
-func _update_all_display() -> void:
-	# 检查节点是否已就绪
-	if not is_inside_tree() or not main_time_label:
-		return
-		
-	# 日期显示
-	var month_name = TimeFormatter.CHINESE_NUMBERS[GameTime.current_month] if GameTime.current_month < 11 else str(GameTime.current_month)
-	var xun_name = TimeFormatter.get_xun_name((GameTime.current_xun - 1) % 3)
-	var day_name = TimeFormatter.CHINESE_NUMBERS[GameTime.current_day % 10] if GameTime.current_day % 10 != 0 else "十"
-	
-	main_time_label.text = "%s月%s第%s日" % [month_name, xun_name, day_name]
-	
-	# 旬进度
-	var xun_day = (GameTime.current_day - 1) % 10 + 1
-	xun_day_label.text = "%d/10" % xun_day
+# --- 内部逻辑 ---
 
-func _update_dynamic_elements() -> void:
-	# 检查节点是否已就绪
-	if not is_inside_tree() or not day_progress_bar:
-		return
+func _update_all() -> void:
+	_update_date_display()
+	_update_doomsday_bars()
 
-	# 当日进度
+func _update_realtime_displays() -> void:
+	# 1. 时辰和当日进度
+	var shichen_idx = int(GameTime.day_progress * 12) % 12
+	shichen_label.text = SHICHEN_NAMES[shichen_idx] + "时"
 	day_progress_bar.value = GameTime.day_progress * 100
 	
-	# 时辰
-	shichen_label.text = TimeFormatter.get_shichen(GameTime.day_progress) + "时"
+	# 2. 旬进度
+	var xun_day = (GameTime.current_day - 1) % 10 + 1
+	xun_label.text = "本旬第 %d/10 日" % xun_day
+	# 假设 xun_progress_ring 内部有更新逻辑，或者直接设置其属性
+	if xun_progress_ring.has_method("set_value"):
+		xun_progress_ring.set_value(GameTime.xun_progress * 100)
 	
-	# 旬结算倒计时
-	var xun_cd = TimeFormatter.to_countdown_string(GameTime.time_to_next_xun, GameTime.debug_speed_multiplier)
-	xun_countdown_label.text = "距旬结算: " + xun_cd
+	# 3. 倒计时
+	_update_countdowns()
 	
-	# 精力恢复倒计时
-	if last_refresh_time > 0:
-		var recovery = TimeFormatter.get_stamina_recovery_countdown(last_refresh_time, current_stamina, max_stamina, GameTime.debug_speed_multiplier)
-		if recovery.next_recovery_in > 0:
-			stamina_countdown_label.text = "精力恢复: " + TimeFormatter.to_countdown_string(recovery.next_recovery_in, GameTime.debug_speed_multiplier)
+	# 4. 数值闪烁 (内耗/亏空 > 80%)
+	_update_warning_flashes()
+
+func _update_date_display() -> void:
+	var month_idx = (GameTime.current_month - 1) % 12
+	var xun_idx = (GameTime.current_xun - 1) % 3
+	var day_idx = (GameTime.current_day - 1) % 10
+	
+	var date_str = "「%s月%s第%s日」" % [
+		MONTH_NAMES[month_idx], 
+		XUN_NAMES[xun_idx], 
+		DAY_NUMBERS[day_idx]
+	]
+	date_label.text = date_str
+
+func _update_countdowns() -> void:
+	# 诗社结算 (跟随旬结算)
+	var time_to_xun = GameTime.time_to_next_xun
+	_set_countdown_text(poetry_section, "诗社结算", time_to_xun)
+	
+	# 精力恢复 (2小时一次)
+	var next_energy_sec = _get_next_energy_recovery_time()
+	_set_countdown_text(energy_section, "精力恢复", next_energy_sec)
+	
+	# 流言到期 (如有)
+	if _last_rumor_expiry > 0:
+		var time_to_rumor = _last_rumor_expiry - Time.get_unix_time_from_system()
+		if time_to_rumor > 0:
+			_set_countdown_text(rumor_section, "流言到期", time_to_rumor)
+			rumor_section.show()
 		else:
-			stamina_countdown_label.text = "精力已满"
-
-func _on_day_changed(_day: int) -> void:
-	_update_all_display()
-
-func _on_xun_changed(_xun: int) -> void:
-	_update_all_display()
-
-func _on_month_changed(_month: int) -> void:
-	_update_all_display()
-
-func _on_back_button_pressed() -> void:
-	# 返回主界面 (假设 Hub.tscn 是主界面)
-	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
-
-# --- 调试功能实现 ---
-
-func _setup_debug_controls() -> void:
-	if not debug_controls: return
-	
-	debug_controls.show()
-	
-	# 连接信号
-	if speed_slider:
-		speed_slider.value_changed.connect(_on_speed_slider_changed)
-		# 同步当前倍速到滑块
-		var multipliers = [1.0, 10.0, 60.0, 600.0, 3600.0]
-		var current_idx = multipliers.find(GameTime.debug_speed_multiplier)
-		if current_idx != -1:
-			speed_slider.value = current_idx
-			speed_value_label.text = "%gx" % GameTime.debug_speed_multiplier
-	
-	if day_jump_btn:
-		day_jump_btn.pressed.connect(func(): _jump_time(GameTime.SECONDS_PER_DAY))
-	if xun_jump_btn:
-		xun_jump_btn.pressed.connect(func(): _jump_time(GameTime.SECONDS_PER_XUN))
-	if month_jump_btn:
-		month_jump_btn.pressed.connect(func(): _jump_time(GameTime.SECONDS_PER_MONTH))
-	if reset_debug_btn:
-		reset_debug_btn.pressed.connect(_on_reset_debug_pressed)
-
-func _on_speed_slider_changed(val: float) -> void:
-	var multipliers = [1.0, 10.0, 60.0, 600.0, 3600.0]
-	var multiplier = multipliers[int(val)] if int(val) < multipliers.size() else val
-	
-	GameTime.debug_speed_multiplier = multiplier
-	if speed_value_label:
-		speed_value_label.text = "%gx" % multiplier
-	
-	_update_all_display()
-
-func _jump_time(game_seconds: float) -> void:
-	# 游戏秒数偏移转换为现实秒数偏移
-	var real_offset = game_seconds / GameTime.debug_speed_multiplier
-	GameTime.set_debug_epoch_offset(GameTime.debug_epoch_offset + real_offset)
-	_update_all_display()
-
-func _on_reset_debug_pressed() -> void:
-	GameTime.debug_speed_multiplier = 1.0
-	GameTime.debug_epoch_offset = 0.0
-	if speed_slider: speed_slider.value = 0
-	if speed_value_label: speed_value_label.text = "1x"
-	_update_all_display()
-
-func _on_debug_speed_changed(multiplier: float) -> void:
-	# 同步 UI 组件
-	if speed_slider:
-		var multipliers = [1.0, 10.0, 60.0, 600.0, 3600.0]
-		var idx = multipliers.find(multiplier)
-		if idx != -1:
-			speed_slider.set_value_no_signal(idx)
-	if speed_value_label:
-		speed_value_label.text = "%gx" % multiplier
-
-	var label = get_node_or_null("DebugLabel")
-	if not label:
-		label = Label.new()
-		label.name = "DebugLabel"
-		add_child(label)
-	
-	if multiplier > 1.0:
-		label.text = "⚡调试加速 x%d" % int(multiplier)
-		label.modulate = Color.RED
+			rumor_section.hide()
 	else:
-		label.text = ""
+		rumor_section.hide()
 
-## 外部接口：同步末日进度
-func update_doom_values(deficit: float, conflict: float) -> void:
-	if not deficit_bar or not conflict_bar: return
+func _set_countdown_text(container: HBoxContainer, label_prefix: String, seconds: float) -> void:
+	var label = container.get_node("Label") as Label
+	if not label: return
 	
-	deficit_bar.value = deficit
-	conflict_bar.value = conflict
-	
-	# 颜色逻辑 (Green -> Red)
-	deficit_bar.modulate = _get_doom_color(deficit)
-	conflict_bar.modulate = _get_doom_color(conflict)
-	
-	# 闪烁逻辑
-	if deficit > 80 or conflict > 80:
-		_start_blink()
+	var game_time_str = _format_game_time(seconds)
+	var real_time_str = _format_real_time(seconds)
+	label.text = "%s: %s %s" % [label_prefix, game_time_str, real_time_str]
 
-func _get_doom_color(val: float) -> Color:
-	if val < 30: return Color.GREEN
-	if val < 60: return Color.YELLOW
-	if val < 80: return Color.ORANGE
-	return Color.RED
+func _format_game_time(seconds: float) -> String:
+	# 换算规则：1 游戏日 = SECONDS_PER_DAY = 7200 现实秒
+	# 1 时辰 = 1/12 游戏日 = 600 秒
+	# 1 刻 = 1/8 时辰 = 75 秒
+	var total_kes = int(seconds / 75.0)
+	var shichen = total_kes / 8
+	var kes = total_kes % 8
+	return "%d时%d刻" % [shichen, kes]
 
-func _start_blink() -> void:
-	# 简单实现：使用 Tween 闪烁
-	pass
+func _format_real_time(seconds: float) -> String:
+	var hours = seconds / 3600.0
+	return "(约%.1f小时后)" % hours
+
+func _get_next_energy_recovery_time() -> float:
+	# 参考 PlayerState.get_current_stamina()
+	var now = Time.get_unix_time_from_system()
+	var last_refresh = PlayerState.last_stamina_refresh
+	var recovery_sec = GameConfig.STAMINA_RECOVERY_SEC # 7200
+	
+	var elapsed = now - last_refresh
+	var next_recovery_in = recovery_sec - fmod(elapsed, recovery_sec)
+	return next_recovery_in
+
+func _update_doomsday_bars() -> void:
+	deficit_bar.value = GameState.deficit_value
+	friction_bar.value = GameState.internal_conflict
+	_update_doomsday_colors()
+
+func _update_doomsday_colors() -> void:
+	_set_bar_color(deficit_bar, GameState.deficit_value)
+	_set_bar_color(friction_bar, GameState.internal_conflict)
+
+func _set_bar_color(bar: ProgressBar, value: float) -> void:
+	var style: StyleBoxFlat = bar.get_theme_stylebox("fill")
+	if not style: return
+	
+	if value < 40:
+		style.bg_color = Color.GREEN
+	elif value < 60:
+		style.bg_color = Color.YELLOW
+	elif value < 80:
+		style.bg_color = Color.ORANGE
+	else:
+		style.bg_color = Color.RED
+
+func _update_warning_flashes() -> void:
+	var t = Time.get_ticks_msec() / 500.0
+	var flash = int(t) % 2 == 0
+	
+	if GameState.deficit_value >= 80:
+		deficit_bar.modulate.a = 1.0 if flash else 0.3
+	else:
+		deficit_bar.modulate.a = 1.0
+		
+	if GameState.internal_conflict >= 80:
+		friction_bar.modulate.a = 1.0 if flash else 0.3
+	else:
+		friction_bar.modulate.a = 1.0
+
+# --- 信号回调 ---
+
+func _on_day_changed(_new_day: int) -> void:
+	_update_date_display()
+
+func _on_xun_changed(_new_xun: int) -> void:
+	_update_date_display()
+
+func _on_deficit_changed(new_val: float) -> void:
+	deficit_bar.value = new_val
+	_update_doomsday_colors()
+
+func _on_friction_changed(new_val: float) -> void:
+	friction_bar.value = new_val
+	_update_doomsday_colors()
