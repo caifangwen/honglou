@@ -91,6 +91,9 @@ func _initialize_steward_account(steward_uid: String, game_id: String) -> void:
 	# 4. 获取待发放月例玩家列表
 	_load_player_allocation_list()
 
+func _on_BackBtn_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+
 func _update_treasury_ui() -> void:
 	var total = current_treasury_data.get("total_silver", 0)
 	var deficit = current_treasury_data.get("deficit_rate", 0.0)

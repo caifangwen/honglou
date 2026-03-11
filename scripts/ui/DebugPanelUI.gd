@@ -32,6 +32,9 @@ func _ready():
 	_setup_ui()
 	_log("调试面板已就绪", "SYSTEM")
 
+func _on_BackBtn_pressed():
+	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+
 func _setup_ui():
 	# 清空现有 UI
 	for child in content_vbox.get_children():

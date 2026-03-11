@@ -35,6 +35,10 @@ size_flags_horizontal = 3
 size_flags_stretch_ratio = 2.0
 theme_override_constants/separation = 15
 
+[node name="BackBtn" type="Button" parent="MainLayout/LeftPanel"]
+layout_mode = 2
+text = "返回主页"
+
 [node name="ScrollContainer" type="ScrollContainer" parent="MainLayout/LeftPanel"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -69,3 +73,5 @@ scroll_following = true
 layout_mode = 2
 size_flags_vertical = 3
 size_flags_stretch_ratio = 0.5
+
+[connection signal="pressed" from="MainLayout/LeftPanel/BackBtn" to="." method="_on_BackBtn_pressed"]
