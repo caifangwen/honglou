@@ -69,7 +69,7 @@ func _on_suppress_btn_pressed():
 	# 假设有一个全局 ConfirmDialog，如果没有则直接调用
 	var result = await SupabaseManager.invoke_function("suppress-rumor", {"rumor_id": rumor_data.id})
 	if result.get("success", false):
-		PlayerState.qi_points -= 10
+		PlayerState.qi_shu -= 10
 		queue_free()
 	else:
 		print("压制失败: ", result.get("error", "未知错误"))

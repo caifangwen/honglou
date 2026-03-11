@@ -21,6 +21,13 @@ func _ready():
 	# 监听内耗值变化
 	GameState.conflict_changed.connect(_on_conflict_changed)
 	_on_conflict_changed(GameState.internal_conflict)
+	
+	# 监听流言发布成功信号，刷新列表
+	if not EventBus.rumor_published.is_connected(_on_rumor_published):
+		EventBus.rumor_published.connect(_on_rumor_published)
+
+func _on_rumor_published(_data: Dictionary):
+	_load_rumors()
 
 func _on_back_pressed():
 	get_tree().change_scene_to_file("res://scenes/Hub.tscn")

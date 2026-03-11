@@ -21,15 +21,27 @@ func _ready():
 	publish_btn.pressed.connect(_on_publish)
 	close_btn.pressed.connect(hide)
 	tab_container.tab_changed.connect(_on_tab_changed)
+	target_selector.item_selected.connect(_on_target_selected)
 	_load_players()
 	_load_intel_fragments()
 
 func _on_tab_changed(tab: int):
 	selected_source_type = SourceType.INTEL_FRAGMENT if tab == 0 else SourceType.FREEWRITE
 
+func _on_target_selected(index: int):
+	if index > 0:
+		selected_target_uid = target_selector.get_item_metadata(index)
+	else:
+		selected_target_uid = ""
+
 func _load_players():
 	target_selector.clear()
 	target_selector.add_item("选择流言目标...", 0)
+	
+	if PlayerState.current_game_id == "":
+		print("[PublishRumorPanel] Warning: current_game_id is empty")
+		return
+		
 	var players = await SupabaseManager.query("players", {"current_game_id": PlayerState.current_game_id})
 	for p in players:
 		if p.id != PlayerState.player_db_id:
@@ -39,6 +51,9 @@ func _load_players():
 func _load_intel_fragments():
 	for child in fragment_list.get_children():
 		child.queue_free()
+		
+	if PlayerState.player_db_id == "":
+		return
 		
 	var fragments = await SupabaseManager.query(
 		"intel_fragments", 
@@ -85,17 +100,20 @@ func _check_graft_availability():
 		graft_hint.visible = false
 
 func _on_publish():
-	# 获取选中的目标 UID
-	if selected_target_uid == "" and target_selector.get_selected_id() > 0:
-		selected_target_uid = target_selector.get_item_metadata(target_selector.selected)
+	# 确保目标已选择
+	if target_selector.selected <= 0:
+		EventBus.show_notification.emit("请选择流言目标")
+		return
+	
+	selected_target_uid = target_selector.get_item_metadata(target_selector.selected)
 		
 	if selected_target_uid == "":
-		print("请选择流言目标")
+		EventBus.show_notification.emit("请选择有效的流言目标")
 		return
 
 	# 校验精力
 	if PlayerState.stamina < 5:
-		print("精力不足，无法发布流言")
+		EventBus.show_notification.emit("精力不足，无法发布流言")
 		return
 	
 	# 构造请求
@@ -107,25 +125,28 @@ func _on_publish():
 	
 	if selected_source_type == SourceType.FREEWRITE:
 		var content = freewrite_input.text.strip_edges()
-		if content.length() == 0 or content.length() > 150:
-			print("流言内容需在1–150字之间")
+		if content.length() < 2 or content.length() > 150:
+			EventBus.show_notification.emit("流言内容需在2–150字之间")
 			return
 		payload["content"] = content
 	else:
 		if selected_fragments.is_empty():
-			print("请至少选择一条情报碎片")
+			EventBus.show_notification.emit("请至少选择一条情报碎片")
 			return
 		payload["intel_fragment_ids"] = selected_fragments.map(func(f): return f.id)
 	
 	publish_btn.disabled = true
 	var result = await SupabaseManager.invoke_function("publish-rumor", payload)
 	
-	if result.get("success", false):
-		print("流言已悄悄散出，坐等发酵...")
+	if result is Dictionary and result.get("success", false):
+		EventBus.show_notification.emit("流言已悄悄散出，坐等发酵...")
 		PlayerState.stamina -= 5
 		hide()
 		# 发送信号通知列表刷新
-		EventBus.emit_signal("special_event_triggered", "rumor_published")
+		EventBus.rumor_published.emit(result.get("data", {}))
 	else:
-		print("发布失败：" + result.get("error", "未知错误"))
+		var err = "未知错误"
+		if result is Dictionary:
+			err = result.get("error", "未知错误")
+		EventBus.show_notification.emit("发布失败：" + err)
 		publish_btn.disabled = false

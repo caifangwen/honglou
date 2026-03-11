@@ -19,10 +19,10 @@ var stamina: int = 6:
 		stamina = val
 		stamina_changed.emit(stamina)
 var stamina_max: int = 6
-var qi_points: int = GameConfig.INIT_QI_SHU:
+var qi_shu: int = GameConfig.INIT_QI_SHU:
 	set(val):
-		qi_points = val
-		qi_points_changed.emit(qi_points)
+		qi_shu = val
+		qi_shu_changed.emit(qi_shu)
 var silver: int = 0:
 	set(val):
 		silver = val
@@ -39,7 +39,7 @@ var last_stamina_refresh: int = 0
 
 signal stamina_changed(new_val: int)
 signal silver_changed(new_val: int)
-signal qi_points_changed(new_val: int)
+signal qi_shu_changed(new_val: int)
 signal prestige_changed(new_val: int)
 
 # 新增：从数据库返回的完整数据初始化 
@@ -54,7 +54,7 @@ func load_from_db(row: Dictionary) -> void:
 	current_game_id = _safe_get(row, "current_game_id", "") 
 	stamina         = _safe_get(row, "stamina", stamina) 
 	stamina_max     = _safe_get(row, "stamina_max", stamina_max) 
-	qi_points       = _safe_get(row, "qi_points", qi_points) 
+	qi_shu          = _safe_get(row, "qi_points", qi_shu) 
 	silver          = _safe_get(row, "silver", silver) 
 	face_value      = _safe_get(row, "face_value", face_value) 
 	prestige        = _safe_get(row, "prestige", prestige) 
