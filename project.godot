@@ -24,6 +24,7 @@ FirebaseManager="*res://scripts/autoload/FirebaseManager.gd"
 EventBus="*res://scripts/autoload/EventBus.gd"
 SupabaseManager="*res://scripts/autoload/SupabaseManager.gd"
 StaminaManager="*res://scripts/autoload/StaminaManager.gd"
+EavesdropManager="*res://scripts/autoload/EavesdropManager.gd"
 
 [physics]
 

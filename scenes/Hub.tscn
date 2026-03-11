@@ -100,6 +100,10 @@ text = "海棠诗社"
 layout_mode = 2
 text = "蜂腰桥集市"
 
+[node name="EavesdropBtn" type="Button" parent="NavigationGrid"]
+layout_mode = 2
+text = "听壁脚"
+
 [node name="DebugBtn" type="Button" parent="NavigationGrid"]
 layout_mode = 2
 text = "调试面板"
@@ -125,5 +129,6 @@ visible = false
 [connection signal="pressed" from="NavigationGrid/RumorBoardBtn" to="." method="_on_RumorBoardBtn_pressed"]
 [connection signal="pressed" from="NavigationGrid/PoetryHallBtn" to="." method="_on_PoetryHallBtn_pressed"]
 [connection signal="pressed" from="NavigationGrid/MarketBtn" to="." method="_on_MarketBtn_pressed"]
+[connection signal="pressed" from="NavigationGrid/EavesdropBtn" to="." method="_on_EavesdropBtn_pressed"]
 [connection signal="pressed" from="NavigationGrid/DebugBtn" to="." method="_on_DebugBtn_pressed"]
 

@@ -66,5 +66,8 @@ func _on_PoetryHallBtn_pressed() -> void:
 func _on_MarketBtn_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/Market.tscn")
 
+func _on_EavesdropBtn_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/ui/EavesdropScene.tscn")
+
 func _on_DebugBtn_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/DebugPanel.tscn")
