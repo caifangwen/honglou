@@ -5,8 +5,11 @@ extends Control
 @onready var back_btn: Button = %BackBtn
 
 func _ready() -> void:
-    pass
+    $Header/InboxBtn.pressed.connect(_on_InboxBtn_pressed)
 
 func _on_BackBtn_pressed() -> void:
     get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+
+func _on_InboxBtn_pressed() -> void:
+    get_tree().change_scene_to_file("res://scenes/Inbox.tscn")
 

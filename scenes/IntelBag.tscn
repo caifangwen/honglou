@@ -17,8 +17,16 @@ layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 grow_horizontal = 2
-theme_override_constants/separation = 40
-alignment = 1
+theme_override_constants/separation = 20
+alignment = 0
+
+[node name="BackBtn" type="Button" parent="TopBar"]
+layout_mode = 2
+text = " 返回 "
+
+[node name="Spacer1" type="Control" parent="TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="StaminaLabel" type="Label" parent="TopBar"]
 layout_mode = 2
@@ -29,6 +37,14 @@ text = "精力: 8/8"
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "气数: 100"
+
+[node name="Spacer2" type="Control" parent="TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InboxBtn" type="Button" parent="TopBar"]
+layout_mode = 2
+text = " 门房信箱 "
 
 [node name="Middle" type="Control" parent="."]
 layout_mode = 1

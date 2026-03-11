@@ -27,6 +27,7 @@ StaminaManager="*res://scripts/autoload/StaminaManager.gd"
 EavesdropManager="*res://scripts/autoload/EavesdropManager.gd"
 RelationshipManager="*res://scripts/autoload/RelationshipManager.gd"
 MaidProgressionChecker="*res://scripts/autoload/MaidProgressionChecker.gd"
+InboxManager="*res://scripts/inbox/InboxManager.gd"
 PowerInfluence="*res://scripts/systems/PowerInfluence.gd"
 
 [physics]

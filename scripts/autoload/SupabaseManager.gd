@@ -104,6 +104,13 @@ func db_update(table, filter, data):
 	return await _patch("/rest/v1/" + table + "?" + filter, body) 
 
 # ───────────────────────────────────────── 
+# 数据库：删除（DELETE） 
+# 用法：db_delete("players", "id=eq.xxx") 
+# ───────────────────────────────────────── 
+func db_delete(table, filter): 
+	return await _delete("/rest/v1/" + table + "?" + filter) 
+
+# ───────────────────────────────────────── 
 # 数据库：RPC（POST to /rpc/） 
 # ───────────────────────────────────────── 
 func db_rpc(function_name: String, params: Dictionary = {}, with_auth: bool = true):
@@ -139,6 +146,16 @@ func _patch(endpoint_or_url, body):
 	var headers = _build_headers(true) 
 	var url = endpoint_or_url if endpoint_or_url.begins_with("http") else GameConfig.SUPABASE_URL + endpoint_or_url 
 	http.request(url, headers, HTTPClient.METHOD_PATCH, body) 
+	
+	var res = await http.request_completed
+	return _on_request_completed_async(res[0], res[1], res[2], res[3], http, endpoint_or_url)
+
+func _delete(endpoint_or_url): 
+	var http = HTTPRequest.new() 
+	add_child(http) 
+	var headers = _build_headers(true) 
+	var url = endpoint_or_url if endpoint_or_url.begins_with("http") else GameConfig.SUPABASE_URL + endpoint_or_url 
+	http.request(url, headers, HTTPClient.METHOD_DELETE) 
 	
 	var res = await http.request_completed
 	return _on_request_completed_async(res[0], res[1], res[2], res[3], http, endpoint_or_url)

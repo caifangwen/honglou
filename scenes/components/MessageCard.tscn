@@ -1,0 +1,86 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/inbox/MessageCard.gd" id="1_script"]
+
+[node name="MessageCard" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 100)
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 100.0
+grow_horizontal = 2
+script = ExtResource("1_script")
+
+[node name="HBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Avatar" type="TextureRect" parent="HBox"]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+size_flags_vertical = 4
+expand_mode = 1
+stretch_mode = 5
+
+[node name="VBox" type="VBoxContainer" parent="HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Header" type="HBoxContainer" parent="HBox/VBox"]
+layout_mode = 2
+
+[node name="SenderLabel" type="Label" parent="HBox/VBox/Header"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "发送者"
+
+[node name="TypeLabel" type="Label" parent="HBox/VBox/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = "[类型]"
+
+[node name="Spacer" type="Control" parent="HBox/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TimeLabel" type="Label" parent="HBox/VBox/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+text = "12:00"
+
+[node name="ContentLabel" type="Label" parent="HBox/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "消息内容预览..."
+autowrap_mode = 3
+max_lines_visible = 2
+
+[node name="AttachmentsLabel" type="Label" parent="HBox/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.6, 0.9, 1)
+text = "[附件]"
+
+[node name="RumorPanel" type="VBoxContainer" parent="HBox/VBox"]
+visible = false
+layout_mode = 2
+
+[node name="ProgressBar" type="ProgressBar" parent="HBox/VBox/RumorPanel"]
+layout_mode = 2
+value = 50.0
+
+[node name="TimerLabel" type="Label" parent="HBox/VBox/RumorPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "发酵中..."
+
+[node name="ActionButtons" type="HBoxContainer" parent="HBox/VBox"]
+layout_mode = 2
+alignment = 2
+
+[node name="ReactionButtons" type="HBoxContainer" parent="HBox/VBox"]
+layout_mode = 2
+
+[node name="UnreadIndicator" type="ColorRect" parent="."]
+custom_minimum_size = Vector2(10, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+color = Color(1, 0, 0, 1)

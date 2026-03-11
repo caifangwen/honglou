@@ -1,0 +1,116 @@
+[gd_scene format=3 uid="uid://b17d654555fjh"]
+
+[ext_resource type="Script" uid="uid://dmbomlq2ynace" path="res://scripts/test/TestPanelUI.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://bxrewnu6mlq7c" path="res://scripts/test/MaidSystemTestHarness.gd" id="2_harness"]
+
+[node name="TestPanel" type="Control" unique_id=1274138029]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1525162867]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.129412, 0.129412, 0.129412, 1)
+
+[node name="VBox" type="VBoxContainer" parent="." unique_id=2140846257]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 15
+
+[node name="Title" type="Label" parent="VBox" unique_id=2142481817]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "丫鬟系统集成测试控制台"
+horizontal_alignment = 1
+
+[node name="Grid" type="GridContainer" parent="VBox" unique_id=843520451]
+visible = false
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+columns = 4
+
+[node name="SetupBtn" type="Button" parent="VBox/Grid" unique_id=1654815077]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "初始化测试环境"
+
+[node name="TestIntelBtn" type="Button" parent="VBox/Grid" unique_id=179046798]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "情报生成测试"
+
+[node name="TestRumorBtn" type="Button" parent="VBox/Grid" unique_id=2121226560]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "流言发酵测试"
+
+[node name="TestRedemptionBtn" type="Button" parent="VBox/Grid" unique_id=1612577444]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "赎身出府测试"
+
+[node name="TestPartnershipBtn" type="Button" parent="VBox/Grid" unique_id=981066245]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "双人监听测试"
+
+[node name="TimeSkipBtn" type="Button" parent="VBox/Grid" unique_id=81971382]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "时间加速控制"
+
+[node name="ResetBtn" type="Button" parent="VBox/Grid" unique_id=1153313461]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "重置测试数据"
+
+[node name="RunAllBtn" type="Button" parent="VBox/Grid" unique_id=159092863]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0, 1, 0, 1)
+text = "一键运行所有测试"
+
+[node name="LogPanel" type="Panel" parent="VBox" unique_id=1453838627]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LogLabel" type="RichTextLabel" parent="VBox/LogPanel" unique_id=804372817]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/normal_font_size = 14
+bbcode_enabled = true
+scroll_following = true
+
+[node name="MaidSystemTestHarness" type="Node" parent="." unique_id=1166654861]
+script = ExtResource("2_harness")
+
+[connection signal="pressed" from="VBox/Grid/SetupBtn" to="." method="_on_SetupBtn_pressed"]
+[connection signal="pressed" from="VBox/Grid/TestIntelBtn" to="." method="_on_TestIntelBtn_pressed"]
+[connection signal="pressed" from="VBox/Grid/TestRumorBtn" to="." method="_on_TestRumorBtn_pressed"]
+[connection signal="pressed" from="VBox/Grid/TestRedemptionBtn" to="." method="_on_TestRedemptionBtn_pressed"]
+[connection signal="pressed" from="VBox/Grid/TestPartnershipBtn" to="." method="_on_TestPartnershipBtn_pressed"]
+[connection signal="pressed" from="VBox/Grid/TimeSkipBtn" to="." method="_on_TimeSkipBtn_pressed"]
+[connection signal="pressed" from="VBox/Grid/ResetBtn" to="." method="_on_ResetBtn_pressed"]
+[connection signal="pressed" from="VBox/Grid/RunAllBtn" to="." method="_on_RunAllBtn_pressed"]

@@ -26,6 +26,10 @@ func _ready() -> void:
 	PlayerState.qi_shu_changed.connect(_on_qi_shu_changed)
 	$SellPopup.confirmed.connect(_on_sell_confirmed)
 	
+	# 导航按钮连接
+	$TopBar/BackBtn.pressed.connect(_on_BackBtn_pressed)
+	$TopBar/InboxBtn.pressed.connect(_on_InboxBtn_pressed)
+	
 	# 初始化界面
 	_on_stamina_changed(PlayerState.stamina)
 	_on_qi_shu_changed(PlayerState.qi_shu)
@@ -201,3 +205,9 @@ func _on_go_listening_pressed() -> void:
 
 func _on_go_market_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/Market.tscn")
+
+func _on_BackBtn_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+
+func _on_InboxBtn_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/Inbox.tscn")

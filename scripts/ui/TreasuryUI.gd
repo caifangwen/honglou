@@ -20,6 +20,10 @@ func _ready() -> void:
 	# 初始化数据
 	_refresh_data()
 	
+	# 导航按钮连接
+	$Header/BackBtn.pressed.connect(_on_BackBtn_pressed)
+	$Header/InboxBtn.pressed.connect(_on_InboxBtn_pressed)
+	
 	# 设置实时监听 (Supabase Realtime 示例逻辑)
 	# SupabaseManager.subscribe_to_table("treasury", _on_treasury_updated)
 
@@ -95,9 +99,6 @@ func _initialize_steward_account(steward_uid: String, game_id: String) -> void:
 			"max_stamina": 6
 		}
 		await SupabaseManager.db_insert("steward_stamina", stamina_data)
-
-func _on_BackBtn_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
 
 func _update_treasury_ui() -> void:
 	var total = current_treasury_data.get("total_silver", 0)
@@ -180,10 +181,9 @@ func _on_action_pressed(action_type: String) -> void:
 		# 弹出成功提示
 		print("行动执行成功: ", action_type)
 	else:
-		# 弹出错误提示
-		push_error("行动执行失败: " + result["error"])
+		# 行动执行失败逻辑
+		push_error("行动执行失败: " + action_type)
 
-# 月例发放逻辑
 func distribute_allowance(target_uid: String, amount: int, standard: int):
 	var body = {
 		"steward_uid": SupabaseManager.current_uid,
@@ -192,9 +192,14 @@ func distribute_allowance(target_uid: String, amount: int, standard: int):
 		"standard_amount": standard,
 		"game_id": GameState.current_game_id
 	}
-	SupabaseManager._post("/functions/v1/distribute-allowance", JSON.stringify(body), true)
-	var res = await SupabaseManager.request_completed
+	var res = await SupabaseManager._post("/functions/v1/distribute-allowance", JSON.stringify(body), true)
 	if res["code"] == 200:
 		_refresh_data()
 	else:
 		push_error("发放月例失败")
+
+func _on_BackBtn_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+
+func _on_InboxBtn_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/Inbox.tscn")

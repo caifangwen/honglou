@@ -1,0 +1,98 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/inbox/ComposePanel.gd" id="1_script"]
+
+[node name="ComposePanel" type="PanelContainer"]
+custom_minimum_size = Vector2(400, 500)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -250.0
+offset_right = 200.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "撰写信件"
+horizontal_alignment = 1
+
+[node name="ReceiverBox" type="VBoxContainer" parent="VBox"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBox/ReceiverBox"]
+layout_mode = 2
+text = "收件人:"
+
+[node name="ReceiverSearch" type="LineEdit" parent="VBox/ReceiverBox"]
+layout_mode = 2
+placeholder_text = "输入姓名搜索..."
+
+[node name="ReceiverList" type="ItemList" parent="VBox/ReceiverBox"]
+visible = false
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+
+[node name="ContentBox" type="VBoxContainer" parent="VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="VBox/ContentBox"]
+layout_mode = 2
+text = "正文:"
+
+[node name="ContentEdit" type="TextEdit" parent="VBox/ContentBox"]
+layout_mode = 2
+size_flags_vertical = 3
+placeholder_text = "书写你的消息..."
+
+[node name="AttachmentsList" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+
+[node name="ServantOptions" type="VBoxContainer" parent="VBox"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="HSeparator" type="HSeparator" parent="VBox/ServantOptions"]
+layout_mode = 2
+
+[node name="CheckTamper" type="CheckBox" parent="VBox/ServantOptions"]
+layout_mode = 2
+text = "篡改/传话"
+
+[node name="TamperEdit" type="TextEdit" parent="VBox/ServantOptions"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+placeholder_text = "篡改后的内容..."
+
+[node name="CheckIntercept" type="CheckBox" parent="VBox/ServantOptions"]
+layout_mode = 2
+text = "截留信件"
+
+[node name="HBox" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+
+[node name="StaminaCostLabel" type="Label" parent="VBox/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.8, 0, 1)
+text = "预计消耗精力: 1 点"
+
+[node name="BtnCancel" type="Button" parent="VBox/HBox"]
+layout_mode = 2
+text = "取消"
+
+[node name="BtnSend" type="Button" parent="VBox/HBox"]
+layout_mode = 2
+text = "寄出"
