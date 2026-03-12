@@ -26,7 +26,12 @@ func setup(data: Dictionary) -> void:
 	message_id = data.get("id", "")
 	
 	# 基础信息
-	sender_label.text = data.get("sender_name", "未知") # 假设 API 返回了 sender_name
+	var sender_info = data.get("sender", {})
+	var s_name = sender_info.get("character_name", "未知")
+	if s_name == "未知":
+		s_name = sender_info.get("display_name", "未知")
+	
+	sender_label.text = s_name
 	type_label.text = _get_type_display_name(data.get("message_type", ""))
 	content_label.text = data.get("content", "")
 	time_label.text = _format_time(data.get("created_at", ""))

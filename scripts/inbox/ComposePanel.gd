@@ -34,6 +34,27 @@ func _ready() -> void:
 	# 监听丫鬟篡改/截留勾选，更新文案和精力
 	check_tamper.toggled.connect(_on_servant_action_toggled.bind(check_tamper))
 	check_intercept.toggled.connect(_on_servant_action_toggled.bind(check_intercept))
+	
+	# 默认加载联系人
+	_load_initial_contacts()
+
+func _load_initial_contacts() -> void:
+	# 加载当前局内所有其他玩家作为初始联系人
+	var game_id = PlayerState.current_game_id
+	if game_id == "":
+		return
+		
+	var endpoint = "/rest/v1/players?game_id=eq.%s&id=neq.%s&select=id,display_name,character_name" % [game_id, PlayerState.player_db_id]
+	var res = await SupabaseManager.db_get(endpoint)
+	if res["code"] == 200:
+		receiver_list.clear()
+		for player in res["data"]:
+			var label = "%s (%s)" % [player["display_name"], player["character_name"]]
+			receiver_list.add_item(label)
+			receiver_list.set_item_metadata(receiver_list.get_item_count() - 1, player["id"])
+		
+		if not res["data"].is_empty():
+			receiver_list.show()
 
 func _update_stamina_hint() -> void:
 	var cost = 1 # 默认私信 1 点
@@ -54,16 +75,20 @@ func _update_stamina_hint() -> void:
 func _on_receiver_search_changed(new_text: String) -> void:
 	# 搜索玩家逻辑（模糊查询）
 	# 调用 SupabaseManager 查询 players 表
+	if new_text.length() == 0:
+		_load_initial_contacts()
+		return
+		
 	if new_text.length() < 2:
-		receiver_list.hide()
+		# 仅输入一个字符时暂不搜索
 		return
 	
-	var endpoint = "/rest/v1/players?display_name=ilike.*%s*&game_id=eq.%s&select=id,display_name,character_name" % [new_text, PlayerState.current_game_id]
+	var endpoint = "/rest/v1/players?display_name=ilike.*%s*&game_id=eq.%s&id=neq.%s&select=id,display_name,character_name" % [new_text, PlayerState.current_game_id, PlayerState.player_db_id]
 	var res = await SupabaseManager.db_get(endpoint)
 	if res["code"] == 200:
 		receiver_list.clear()
 		if res["data"].is_empty():
-			receiver_list.hide()
+			# receiver_list.hide() # 不要隐藏，让用户知道没搜到
 			return
 			
 		receiver_list.show()
@@ -84,27 +109,27 @@ func _on_send_pressed() -> void:
 		return
 		
 	if selected_receiver_uid == "":
-		_show_error("请先选择收件人。")
+		_show_error("请先从列表中选择收件人。")
 		return
 		
 	if content_edit.text.strip_edges() == "" and not check_intercept.button_pressed:
 		_show_error("信件内容不能为空。")
 		return
 	
+	# 禁用发送按钮，防止重复点击
+	btn_send.disabled = true
+	
 	# 业务逻辑分支
 	var result = {}
 	
 	# 丫鬟动作
 	if check_intercept.button_pressed:
-		# 截留逻辑：这通常是针对已存在的信件，或者是发件时的特殊拦截
-		# 此处简化为"发送并截留"
-		# 注意：此处 TEMP_ID 是占位符，实际需要传入要截留的真实消息 ID
 		_show_error("截留功能需要先选择要截留的信件。")
+		btn_send.disabled = false
 		return
 	elif check_tamper.button_pressed:
-		# 传话/篡改逻辑
-		# 注意：此处 ORIGINAL_ID 是占位符，实际需要传入要传话的真实消息 ID
 		_show_error("传话功能需要先选择要传达的原始信件。")
+		btn_send.disabled = false
 		return
 	else:
 		# 普通发信
@@ -112,9 +137,17 @@ func _on_send_pressed() -> void:
 	
 	if result.get("success", false):
 		_show_success("信件已寄出。")
+		# 延迟一下再隐藏，让用户看到成功提示
+		await get_tree().create_timer(1.0).timeout
 		hide()
+		# 清空内容以便下次使用
+		content_edit.text = ""
+		selected_receiver_uid = ""
+		receiver_search.text = ""
+		_load_initial_contacts()
 	else:
 		_show_error(result.get("error", "发送失败。"))
+		btn_send.disabled = false
 
 func _on_cancel_pressed() -> void:
 	hide()

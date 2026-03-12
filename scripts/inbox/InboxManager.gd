@@ -13,13 +13,17 @@ func load_inbox(tab: String = "all") -> Array:
     var uid = PlayerState.player_db_id
     var game_id = PlayerState.current_game_id
     
-    var endpoint = "/rest/v1/messages?game_id=eq.%s&order=created_at.desc" % game_id
+    if uid == "" or game_id == "":
+        return []
+    
+    # 获取消息（受 RLS 保护，玩家只能看到自己有权看到的）
+    # 同时在查询中显式指定接收者为当前玩家，并关联发送者信息
+    var endpoint = "/rest/v1/messages?game_id=eq.%s&receiver_uid=eq.%s&select=*,sender:sender_uid(character_name,display_name)&order=created_at.desc" % [game_id, uid]
     
     # 根据 tab 过滤类型
     if tab != "all":
         endpoint += "&message_type=eq.%s" % tab
     
-    # 获取消息（受 RLS 保护，玩家只能看到自己有权看到的）
     var response = await SupabaseManager.db_get(endpoint)
     if response["code"] != 200:
         push_error("[InboxManager] 加载信箱失败: " + str(response))
@@ -38,6 +42,7 @@ func send_private_message(receiver_uid: String, content: String, attachments: Ar
     # 检查接收者是否被管家"封锁消息"
     var is_blocked = await _check_if_blocked(receiver_uid)
     if is_blocked:
+        PlayerState.stamina += 1 # 回滚精力
         return {"success": false, "error": "对方已被管家封锁消息，目前无法接收。"}
     
     var msg_data = {
@@ -47,14 +52,16 @@ func send_private_message(receiver_uid: String, content: String, attachments: Ar
         "message_type": "private",
         "content": content,
         "attachments": attachments,
-        "stamina_cost": 1
+        "stamina_cost": 1,
+        "is_read": false,
+        "created_at": Time.get_datetime_string_from_system(false, true)
     }
     
     var res = await SupabaseManager.db_insert("messages", msg_data)
     if res["code"] == 201 or res["code"] == 200:
         return {"success": true, "data": res["data"]}
     else:
-        # 回滚精力（可选，看游戏设计）
+        # 回滚精力
         PlayerState.stamina += 1 
         return {"success": false, "error": "发送失败，请检查网络。"}
 
@@ -176,10 +183,22 @@ func mark_as_read(message_id: String) -> void:
 # 9. 实时订阅（Supabase Realtime）
 func subscribe_to_inbox() -> void:
     # 订阅 messages 表中 receiver_uid = 当前玩家 的新增消息
-    # 这里的具体实现取决于 SupabaseManager.gd 的 WebSocket 实现
-    # 假设 SupabaseManager 有 subscribe_to_table 功能
-    # SupabaseManager.subscribe_to_table("messages", {"receiver_uid": PlayerState.uid})
-    pass
+    SupabaseManager.subscribe_to_table("messages")
+    
+    # 监听 SupabaseManager 的实时更新信号
+    if not SupabaseManager.realtime_update.is_connected(_on_realtime_update):
+        SupabaseManager.realtime_update.connect(_on_realtime_update)
+
+func _on_realtime_update(table_name: String, data: Dictionary) -> void:
+    if table_name != "messages":
+        return
+        
+    var event_type = data.get("type", "")
+    var new_data = data.get("record", {})
+    
+    # 只关注插入事件，且接收者是当前玩家
+    if event_type == "INSERT" and new_data.get("receiver_uid") == PlayerState.player_db_id:
+        new_message_received.emit(new_data)
 
 # --- 内部辅助函数 ---
 
