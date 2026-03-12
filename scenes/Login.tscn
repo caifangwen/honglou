@@ -72,10 +72,16 @@ text = "登 录"
 layout_mode = 2
 text = "注册新账号"
 
-[node name="QuickLoginBtn" type="Button" parent="CenterContainer/LoginPanel"]
+[node name="QuickLoginLabel" type="Label" parent="CenterContainer/LoginPanel"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.8, 0.4, 1)
-text = "测试环境快捷登录"
+text = "快捷登录测试账号"
+horizontal_alignment = 1
+
+[node name="QuickLoginGrid" type="GridContainer" parent="CenterContainer/LoginPanel"]
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
 
 [node name="LoadingLabel" type="Label" parent="CenterContainer/LoginPanel"]
 visible = false
@@ -85,4 +91,3 @@ horizontal_alignment = 1
 
 [connection signal="pressed" from="CenterContainer/LoginPanel/LoginBtn" to="." method="_on_login_btn_pressed"]
 [connection signal="pressed" from="CenterContainer/LoginPanel/RegisterBtn" to="." method="_on_register_btn_pressed"]
-[connection signal="pressed" from="CenterContainer/LoginPanel/QuickLoginBtn" to="." method="_on_quick_login_btn_pressed"]

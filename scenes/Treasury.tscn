@@ -35,6 +35,10 @@ horizontal_alignment = 1
 layout_mode = 2
 text = "总银两：--"
 
+[node name="TodaySummaryLabel" type="Label" parent="Header"]
+layout_mode = 2
+text = "今日应发合计: 0"
+
 [node name="ProsperityLabel" type="Label" parent="Header"]
 layout_mode = 2
 text = "繁荣度: Lv.1"
@@ -76,6 +80,21 @@ layout_mode = 2
 
 [node name="PrivateLedgerVBox" type="VBoxContainer" parent="TabContainer/PrivateLedger/PrivateLedgerList"]
 layout_mode = 2
+
+[node name="History" type="VBoxContainer" parent="TabContainer"]
+layout_mode = 2
+
+[node name="HistoryTitle" type="Label" parent="TabContainer/History"]
+layout_mode = 2
+text = "历史发放记录"
+
+[node name="HistoryScroll" type="ScrollContainer" parent="TabContainer/History"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HistoryListVBox" type="VBoxContainer" parent="TabContainer/History/HistoryScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="AllocationPanel" type="VBoxContainer" parent="."]
 layout_mode = 1

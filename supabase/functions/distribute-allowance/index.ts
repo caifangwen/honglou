@@ -80,19 +80,19 @@ serve(async (req) => {
     // 4. 写入发放记录
     await supabase.from('allowance_records').insert({
       game_id,
-      steward_uid,
-      recipient_uid,
-      standard_amount,
-      actual_amount,
+      issued_by: steward_uid,
+      player_id: recipient_uid,
+      amount_public: standard_amount,
+      amount_actual: actual_amount,
       withheld_amount: withheld,
-      is_public: withheld === 0
+      issued_at: new Date().toISOString()
     })
 
     // 5. 触发告状风险检测 (本旬内克扣人数 >= 3)
     const { count } = await supabase
       .from('allowance_records')
       .select('*', { count: 'exact', head: true })
-      .eq('steward_uid', steward_uid)
+      .eq('issued_by', steward_uid)
       .eq('game_id', game_id)
       .gt('withheld_amount', 0)
       .gte('created_at', new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString())
