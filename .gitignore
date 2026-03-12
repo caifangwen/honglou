@@ -2,3 +2,11 @@
 .godot/
 /android/
 supabase.exe
+
+# Local environment files (do not commit secrets)
+.env
+.env.local
+.env.*
+
+# Supabase local temp/cache
+supabase/.temp/

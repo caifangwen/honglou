@@ -307,17 +307,72 @@ func _add_player_to_list(player_info: Dictionary) -> void:
 	item.add_child(send_btn)
 	player_list.add_child(item)
 
-# 场景中已连接的信号处理器
-func _on_action_pressed(action_type: String) -> void:
-	# 执行批条行动
-	var result = await StaminaManager.execute_steward_action(action_type, "", {})
-	if result["success"]:
+func _execute_batch_action(action_type: String, extra: Dictionary = {}) -> void:
+	var rpc_name := ""
+	var params: Dictionary = {}
+	
+	match action_type:
+		"procurement":
+			rpc_name = "steward_procure_goods"
+			params = {
+				"p_item_template_key": extra.get("item_template_key", "generic_supply"),
+				"p_quantity": extra.get("quantity", 1)
+			}
+		"assignment":
+			rpc_name = "steward_assign_task"
+			var target_uid: String = extra.get("target_uid", "")
+			if target_uid == "":
+				push_error("请先选择一名目标玩家再派差事")
+				return
+			params = {
+				"p_target_uid": target_uid,
+				"p_silver_reward": extra.get("silver_reward", 10)
+			}
+		"search":
+			rpc_name = "steward_search_players"
+			params = {}
+		"advance":
+			rpc_name = "steward_advance_credit"
+			var adv_target: String = extra.get("target_uid", "")
+			if adv_target == "":
+				push_error("请先选择一名目标玩家再预支批条")
+				return
+			params = {
+				"p_target_uid": adv_target,
+				"p_amount": extra.get("amount", 20),
+				"p_deficit_step": extra.get("deficit_step", 5)
+			}
+		"suppress_rumor":
+			rpc_name = "steward_suppress_rumor"
+			var rumor_id: String = extra.get("rumor_id", "")
+			if rumor_id == "":
+				push_error("未指定要平息的流言")
+				return
+			params = {"p_rumor_id": rumor_id}
+		"block_intel":
+			rpc_name = "steward_block_intel"
+			var intel_id: String = extra.get("intel_id", "")
+			if intel_id == "":
+				push_error("未指定要封锁的情报")
+				return
+			params = {"p_intel_id": intel_id}
+		_:
+			push_error("未知行动类型: " + action_type)
+			return
+	
+	var res = await SupabaseManager.db_rpc(rpc_name, params)
+	var ok: bool = int(res.get("code", 0)) == 200
+	if ok:
+		var data = res.get("data")
+		if data is Dictionary and data.has("success") and data["success"] == false:
+			ok = false
+	
+	if ok:
 		_refresh_data()
-		# 弹出成功提示
 		print("行动执行成功: ", action_type)
 	else:
-		# 行动执行失败逻辑
-		push_error("行动执行失败: " + action_type)
+		var err = str(res.get("error", res.get("data", {}).get("error", "未知错误")))
+		push_error("行动执行失败: %s" % err)
 
 func distribute_allowance(target_uid: String, amount: int, standard: int):
 	print("[TreasuryUI] Attempting to distribute allowance: target=%s, amount=%d" % [target_uid, amount])
@@ -470,12 +525,41 @@ func _on_ConfirmAllocationBtn_pressed() -> void:
 	_refresh_data()
 	print("[TreasuryUI] 批量发放成功")
 
-func _on_ProcureBtn_pressed() -> void: _on_action_pressed("procurement")
-func _on_AssignTaskBtn_pressed() -> void: _on_action_pressed("assignment")
-func _on_SearchGardenBtn_pressed() -> void: _on_action_pressed("search")
-func _on_AdvanceBtn_pressed() -> void: _on_action_pressed("advance")
-func _on_SuppressRumorBtn_pressed() -> void: _on_action_pressed("suppress_rumor")
-func _on_BlockInfoBtn_pressed() -> void: _on_action_pressed("block_intel")
+func _on_ProcureBtn_pressed() -> void:
+	_execute_batch_action("procurement")
+
+func _on_AssignTaskBtn_pressed() -> void:
+	var target_uid := ""
+	if player_list and player_list.get_child_count() > 0:
+		var first_item = player_list.get_child(0)
+		if first_item.has_meta("player_id"):
+			target_uid = first_item.get_meta("player_id")
+	if target_uid == "":
+		push_error("当前无可派遣的目标玩家")
+		return
+	_execute_batch_action("assignment", {"target_uid": target_uid})
+
+func _on_SearchGardenBtn_pressed() -> void:
+	_execute_batch_action("search")
+
+func _on_AdvanceBtn_pressed() -> void:
+	var target_uid := ""
+	if player_list and player_list.get_child_count() > 0:
+		var first_item = player_list.get_child(0)
+		if first_item.has_meta("player_id"):
+			target_uid = first_item.get_meta("player_id")
+	if target_uid == "":
+		push_error("当前无可预支的目标玩家")
+		return
+	_execute_batch_action("advance", {"target_uid": target_uid})
+
+func _on_SuppressRumorBtn_pressed() -> void:
+	# 这里暂时不绑定具体流言，由其他界面传入 rumor_id 时再复用 _execute_batch_action
+	push_error("请在流言界面中选择具体流言进行平息")
+
+func _on_BlockInfoBtn_pressed() -> void:
+	# 这里暂时不绑定具体情报，由其他界面传入 intel_id 时再复用 _execute_batch_action
+	push_error("请在情报界面中选择具体情报进行封锁")
 
 func _on_DebugAllowanceBtn_pressed() -> void:
 	# 调试功能：快速发放给第一个玩家
