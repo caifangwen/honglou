@@ -18,6 +18,10 @@ func _ready() -> void:
     print("2. 正在读取 treasury 表...")
     SupabaseManager.get_from_table("treasury")
     
+    # 3. 读取 players 表
+    print("3. 正在读取 players 表...")
+    SupabaseManager.get_from_table("players")
+    
     # 4. 读取 map_locations 表
     print("4. 正在读取 map_locations 表...")
     SupabaseManager.get_from_table("map_locations")
@@ -54,6 +58,11 @@ func _on_supabase_request_completed(endpoint: String, response_code: int, result
             else:
                 print("   [Treasury] 未找到数据。")
                 
+        "players":
+            if result.size() > 0:
+                print("   [Players] 找到玩家数量: ", result.size())
+            else:
+                print("   [Players] 未找到玩家。")
         "map_locations":
             print("4. 全部 5 个地点名称:")
             for loc in result:

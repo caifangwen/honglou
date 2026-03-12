@@ -101,10 +101,11 @@ serve(async (req) => {
       // 写入风险告警，这里简化为直接在 intel_fragments 中生成一条随机碎片
       await supabase.from('intel_fragments').insert({
         game_id,
-        fragment_type: 'ledger_leak',
+        intel_type: 'account_leak',
         content: `有人偶然发现账房的月例支出似乎与各房领到的数额对不上。`,
-        about_player_id: steward_uid,
-        owner_id: null, // 待系统随机分配
+        source_uid: steward_uid,
+        owner_uid: steward_uid, // 待系统随机分配，这里先写管家作为源头
+        scene: 'treasury_back'
       })
     }
 
@@ -135,10 +136,11 @@ serve(async (req) => {
       if (servants && servants.length > 0) {
         const fragments = servants.map(s => ({
           game_id,
-          owner_id: s.id,
-          fragment_type: 'ledger_leak',
-          content: `听闻 ${recipient_uid} 的月例被管家克扣了 ${withheld} 两。`,
-          about_player_id: steward_uid
+          owner_uid: s.id,
+          intel_type: 'account_leak',
+          content: `听闻被克扣了 ${withheld} 两月例。`,
+          source_uid: steward_uid,
+          scene: 'bridge'
         }))
         await supabase.from('intel_fragments').insert(fragments)
       }

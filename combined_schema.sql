@@ -675,6 +675,39 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- 7. 修改玩家属性 (银两、气数、精力等)
+CREATE OR REPLACE FUNCTION public.modify_player_stats(
+    p_id uuid, 
+    silver_delta int DEFAULT 0,
+    private_silver_delta int DEFAULT 0,
+    qi_delta int DEFAULT 0,
+    stamina_delta int DEFAULT 0
+)
+RETURNS void AS $$
+BEGIN
+    UPDATE public.players SET 
+        silver = silver + silver_delta,
+        private_silver = private_silver + private_silver_delta,
+        qi_points = qi_points + qi_delta,
+        stamina = stamina + stamina_delta,
+        updated_at = now()
+    WHERE id = p_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 8. 获取银库发放统计 (用于计算亏空)
+CREATE OR REPLACE FUNCTION public.get_treasury_stats(p_game_id uuid)
+RETURNS TABLE(sum_public bigint, sum_withheld bigint) AS $$
+BEGIN
+    RETURN QUERY 
+    SELECT 
+        COALESCE(SUM(amount_public)::bigint, 0),
+        COALESCE(SUM(withheld_amount)::bigint, 0)
+    FROM public.allowance_records
+    WHERE game_id = p_game_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- #################### SECTION 11: RLS 策略配置 ####################
 
 -- 开启所有表的 RLS

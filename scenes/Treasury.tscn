@@ -109,9 +109,11 @@ text = "月例发放"
 
 [node name="PlayerAllocationList" type="ScrollContainer" parent="AllocationPanel"]
 layout_mode = 2
+size_flags_vertical = 3
 
 [node name="PlayerAllocationVBox" type="VBoxContainer" parent="AllocationPanel/PlayerAllocationList"]
 layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="ConfirmAllocationBtn" type="Button" parent="AllocationPanel"]
 layout_mode = 2
@@ -131,6 +133,11 @@ text = "精力：--"
 [node name="PrivateAssetsLabel" type="Label" parent="ActionPanel"]
 layout_mode = 2
 text = "个人私产: **0**"
+
+[node name="DebugAllowanceBtn" type="Button" parent="ActionPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.843137, 0, 1)
+text = "【调试】快速发放首位"
 
 [node name="ProcureBtn" type="Button" parent="ActionPanel"]
 layout_mode = 2

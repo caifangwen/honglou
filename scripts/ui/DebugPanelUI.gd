@@ -36,6 +36,7 @@ func _setup_ui():
 	
 	_create_header("🔄 全局操作")
 	_create_reset_button()
+	_create_jump_to_treasury()
 	
 	_create_header("💎 资源调试区")
 	_setup_resource_debug()
@@ -70,6 +71,12 @@ func _create_header(title: String):
 	
 	var hs = HSeparator.new()
 	content_vbox.add_child(hs)
+
+func _create_jump_to_treasury():
+	var btn = Button.new()
+	btn.text = "🏛️ 进入银库场景"
+	btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/Treasury.tscn"))
+	content_vbox.add_child(btn)
 
 func _log(msg: String, type: String = "INFO"):
 	var time = Time.get_time_string_from_system()

@@ -8,6 +8,7 @@ extends Control
 @onready var stamina_label: Label = $ActionPanel/StaminaDisplay
 @onready var private_assets_label: Label = get_node_or_null("ActionPanel/PrivateAssetsLabel")
 @onready var prosperity_label: Label = get_node_or_null("Header/ProsperityLabel")
+@onready var debug_allowance_btn: Button = get_node_or_null("ActionPanel/DebugAllowanceBtn")
 
 @onready var public_ledger_view: ScrollContainer = $TabContainer/PublicLedger/LedgerList
 @onready var private_ledger_view: ScrollContainer = $TabContainer/PrivateLedger/PrivateLedgerList
@@ -28,6 +29,9 @@ func _ready() -> void:
 	# 导航按钮连接
 	$Header/BackBtn.pressed.connect(_on_BackBtn_pressed)
 	$Header/InboxBtn.pressed.connect(_on_InboxBtn_pressed)
+	
+	if debug_allowance_btn:
+		debug_allowance_btn.pressed.connect(_on_DebugAllowanceBtn_pressed)
 	
 	# 设置实时监听
 	SupabaseManager.subscribe_to_table("treasury")
@@ -60,30 +64,37 @@ func _refresh_steward_data() -> void:
 	var game_id = GameState.current_game_id
 	var steward_uid = SupabaseManager.current_uid
 	
-	# 1. 获取 steward_accounts (旧逻辑保留以防万一)
-	var s_res = await SupabaseManager.db_get("/rest/v1/steward_accounts?steward_uid=eq.%s&game_id=eq.%s&select=*" % [steward_uid, game_id])
-	if s_res["code"] == 200 and not s_res["data"].is_empty():
-		current_steward_data = s_res["data"][0]
-	
-	# 2. 获取 players 表中的最新私产 (新逻辑)
-	var p_res = await SupabaseManager.db_get("/rest/v1/players?auth_uid=eq.%s&select=private_silver" % steward_uid)
+	# 1. 获取 players 表中的最新私产和精力 (新逻辑)
+	var p_res = await SupabaseManager.db_get("/rest/v1/players?auth_uid=eq.%s&select=*" % steward_uid)
 	if p_res["code"] == 200 and not p_res["data"].is_empty():
-		var private_silver = p_res["data"][0].get("private_silver", 0)
+		var p_data = p_res["data"][0]
+		var private_silver = p_data.get("private_silver", 0)
+		var current_stamina = p_data.get("stamina", 0)
+		var max_stamina = p_data.get("stamina_max", 6)
+		
 		if private_assets_label:
 			private_assets_label.text = "个人私产: **%d**" % private_silver
+		if stamina_label:
+			stamina_label.text = "精力: %d/%d" % [current_stamina, max_stamina]
+			
 		# 同步到 PlayerState
 		PlayerState.silver = private_silver
+		PlayerState.stamina = current_stamina
+		PlayerState.stamina_max = max_stamina
+		PlayerState.player_db_id = p_data.get("id", "")
 
 func _refresh_allowance_data() -> void:
 	var game_id = GameState.current_game_id
 	
-	# 1. 获取今日汇总
-	var today = Time.get_date_string_from_system()
-	var summary_res = await SupabaseManager.db_get("/rest/v1/allowance_records?game_id=eq.%s&issued_at=gte.%s&select=amount_public.sum()" % [game_id, today])
-	if summary_res["code"] == 200 and not summary_res["data"].is_empty():
-		var total_today = summary_res["data"][0].get("sum", 0)
-		if today_summary_label:
-			today_summary_label.text = "今日应发合计: %d" % total_today
+	# 1. 获取今日预计发放合计 (所有玩家的 standard_allowance 之和)
+	# 如果数据库没有这个字段，我们先用固定值 1000 演示，或者计算 players 数量 * 20
+	var p_res = await SupabaseManager.db_get("/rest/v1/players?current_game_id=eq.%s&select=id" % game_id)
+	var total_expected = 1000 # 默认值
+	if p_res["code"] == 200:
+		total_expected = p_res["data"].size() * 20 # 假设每人 20
+		
+	if today_summary_label:
+		today_summary_label.text = "今日应发合计: %d" % total_expected
 	
 	# 2. 获取历史记录 (按时间倒序)
 	var history_res = await SupabaseManager.db_get("/rest/v1/allowance_records?game_id=eq.%s&order=issued_at.desc&limit=20&select=*,players:player_id(character_name)" % game_id)
@@ -190,21 +201,34 @@ func _load_player_allocation_list() -> void:
 	if not player_list:
 		return
 		
+	var game_id = GameState.current_game_id
+	print("[TreasuryUI] Loading player list for game_id: ", game_id)
+	
 	# 获取当前局所有玩家
-	var p_res = await SupabaseManager.db_get("/rest/v1/players?current_game_id=eq.%s&select=id,character_name,role_class" % GameState.current_game_id)
+	var p_res = await SupabaseManager.db_get("/rest/v1/players?current_game_id=eq.%s&select=id,character_name,role_class" % game_id)
 	if p_res["code"] == 200:
 		# 清空旧列表
 		for child in player_list.get_children():
 			child.queue_free()
 			
-		for p in p_res["data"]:
-			_add_player_to_list(p)
+		if p_res["data"].is_empty():
+			# 调试：如果没有玩家，尝试不带过滤获取 (仅限测试)
+			print("[TreasuryUI] No players found for this game, trying fallback...")
+			var p_res_all = await SupabaseManager.db_get("/rest/v1/players?limit=10&select=id,character_name,role_class")
+			if p_res_all["code"] == 200:
+				for p in p_res_all["data"]:
+					_add_player_to_list(p)
+		else:
+			for p in p_res["data"]:
+				_add_player_to_list(p)
+	else:
+		push_error("[TreasuryUI] Failed to load players: " + str(p_res.get("error", "Unknown error")))
 
 func _add_player_to_list(player_info: Dictionary) -> void:
 	# 动态创建列表项
 	var item = HBoxContainer.new()
 	var name_label = Label.new()
-	name_label.text = player_info["character_name"]
+	name_label.text = player_info.get("character_name", "未知")
 	name_label.custom_minimum_size = Vector2(100, 0)
 	
 	var standard_label = Label.new()
@@ -218,7 +242,7 @@ func _add_player_to_list(player_info: Dictionary) -> void:
 	
 	var send_btn = Button.new()
 	send_btn.text = "发放"
-	send_btn.pressed.connect(distribute_allowance.bind(player_info["id"], int(actual_input.value), standard))
+	send_btn.pressed.connect(func(): distribute_allowance(player_info["id"], int(actual_input.value), standard))
 	
 	item.add_child(name_label)
 	item.add_child(standard_label)
@@ -239,55 +263,55 @@ func _on_action_pressed(action_type: String) -> void:
 		push_error("行动执行失败: " + action_type)
 
 func distribute_allowance(target_uid: String, amount: int, standard: int):
+	# 确保我们有 steward_id
+	var steward_id = PlayerState.player_db_id
+	if steward_id == "":
+		# 尝试从 PlayerState 或数据库重新获取
+		var s_uid = SupabaseManager.current_uid
+		var p_res = await SupabaseManager.db_get("/rest/v1/players?auth_uid=eq.%s&select=id" % s_uid)
+		if p_res["code"] == 200 and not p_res["data"].is_empty():
+			steward_id = p_res["data"][0]["id"]
+			PlayerState.player_db_id = steward_id
+		else:
+			push_error("无法获取管家玩家ID，发放失败")
+			return
+
 	# 1. 调用 Edge Function 处理基础逻辑（扣除银库、记录流水）
 	var body = {
-		"steward_uid": SupabaseManager.current_uid,
+		"steward_uid": steward_id, # 使用 Player UUID
 		"recipient_uid": target_uid,
 		"actual_amount": amount,
 		"standard_amount": standard,
 		"game_id": GameState.current_game_id
 	}
-	var res = await SupabaseManager._post("/functions/v1/distribute-allowance", JSON.stringify(body), true)
-	if res["code"] != 200:
+	
+	var res = await SupabaseManager.invoke_function("distribute-allowance", body)
+	if res.has("error") or (res.has("success") and not res["success"]):
 		push_error("发放月例失败: %s" % str(res.get("error", "Unknown error")))
 		return
 
-	# 2. 补全缺失部分：更新目标玩家银两
-	# 使用 players.id 作为 target_uid
+	# 2. 补全缺失部分：更新目标玩家银两 (使用 RPC 更安全)
 	await SupabaseManager.db_rpc("modify_player_stats", {
 		"p_id": target_uid,
 		"silver_delta": amount
 	})
 
-	# 3. 补全缺失部分：更新管家私产 (players.private_silver)
+	# 3. 重新计算亏空百分比并写入 game_state (games 表)
 	var withheld = standard - amount
-	if withheld > 0:
-		# 获取管家在 players 表中的 ID
-		var steward_player_id = PlayerState.player_db_id
-		# 获取当前私产并累加
-		var p_res = await SupabaseManager.db_get("/rest/v1/players?id=eq.%s&select=private_silver" % steward_player_id)
-		var current_private = 0
-		if p_res["code"] == 200 and not p_res["data"].is_empty():
-			current_private = p_res["data"][0].get("private_silver", 0)
-			
-		await SupabaseManager.db_update("players", "id=eq.%s" % steward_player_id, {
-			"private_silver": current_private + withheld
-		})
-
-	# 4. 重新计算亏空百分比并写入 game_state (games 表)
 	await _recalculate_deficit(withheld)
 
-	# 5. 刷新 UI
+	# 4. 刷新 UI
 	_refresh_data()
 
 func _recalculate_deficit(delta_withheld: int) -> void:
 	var game_id = GameState.current_game_id
 	
-	# 获取历史总额汇总
-	var stats_res = await SupabaseManager.db_get("/rest/v1/allowance_records?game_id=eq.%s&select=amount_public.sum(),withheld_amount.sum()" % game_id)
+	# 获取历史总额汇总 (使用新 RPC)
+	var stats_res = await SupabaseManager.db_rpc("get_treasury_stats", {"p_game_id": game_id})
 	if stats_res["code"] == 200 and not stats_res["data"].is_empty():
-		var total_standard = stats_res["data"][0].get("sum_amount_public", 0)
-		var total_withheld = stats_res["data"][0].get("sum_withheld_amount", 0)
+		var stats = stats_res["data"][0]
+		var total_standard = stats.get("sum_public", 0)
+		var total_withheld = stats.get("sum_withheld", 0)
 		
 		var deficit_percent = 0.0
 		if total_standard > 0:
@@ -323,6 +347,18 @@ func _on_SearchGardenBtn_pressed() -> void: _on_action_pressed("search")
 func _on_AdvanceBtn_pressed() -> void: _on_action_pressed("advance")
 func _on_SuppressRumorBtn_pressed() -> void: _on_action_pressed("suppress_rumor")
 func _on_BlockInfoBtn_pressed() -> void: _on_action_pressed("block_intel")
+
+func _on_DebugAllowanceBtn_pressed() -> void:
+	# 调试功能：快速发放给第一个玩家
+	if player_list and player_list.get_child_count() > 0:
+		var first_item = player_list.get_child(0)
+		# 找到发放按钮
+		for child in first_item.get_children():
+			if child is Button and child.text == "发放":
+				child.pressed.emit()
+				print("[Debug] Triggered first player distribution")
+				return
+	print("[Debug] No players to distribute to")
 
 func _on_BackBtn_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
