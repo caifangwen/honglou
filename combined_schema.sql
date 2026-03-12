@@ -457,18 +457,21 @@ CREATE TABLE IF NOT EXISTS public.map_locations (
 
 -- #################### SECTION 8: 管家与审批系统 ####################
 
--- 1. steward_accounts 表：管家个人账目
+-- 6. steward_accounts 表：管家双账本与私产
 CREATE TABLE IF NOT EXISTS public.steward_accounts (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    game_id uuid NOT NULL REFERENCES public.treasury(game_id),
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    game_id uuid NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
     steward_uid uuid NOT NULL REFERENCES public.players(id),
-    public_ledger jsonb DEFAULT '[]',
-    private_ledger jsonb DEFAULT '[]',
-    private_assets integer DEFAULT 0,
-    prestige integer DEFAULT 50 CHECK (prestige BETWEEN 0 AND 100),
-    action_route steward_route DEFAULT 'undecided',
-    assets_transferred boolean DEFAULT false,
+    
+    -- 账本内容 (存储为 JSON 数组)
+    public_ledger jsonb DEFAULT '[]',             -- 明账：月例发放记录
+    private_ledger jsonb DEFAULT '[]',            -- 暗账：克扣/挪用记录
+    
+    private_assets int DEFAULT 0,                -- 私产总额 (冗余字段，便于显示)
+    prestige int DEFAULT 50,                     -- 管家威望
+    
     created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
     UNIQUE(game_id, steward_uid)
 );
 
@@ -695,7 +698,128 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 8. 获取银库发放统计 (用于计算亏空)
+-- 8. 月例发放 RPC (替代缺失的 Edge Function)
+CREATE OR REPLACE FUNCTION public.distribute_allowance_rpc(
+    p_steward_uid uuid,
+    p_recipient_uid uuid,
+    p_recipient_name text,
+    p_actual_amount int,
+    p_standard_amount int,
+    p_game_id uuid
+)
+RETURNS JSON AS $$
+DECLARE
+    v_treasury_id uuid;
+    v_total_silver int;
+    v_withheld int;
+    v_public_entry jsonb;
+    v_private_entry jsonb;
+    v_withheld_count int;
+BEGIN
+    -- 1. 获取银库
+    SELECT id, total_silver INTO v_treasury_id, v_total_silver FROM public.treasury WHERE game_id = p_game_id;
+    IF v_treasury_id IS NULL THEN RETURN json_build_object('success', false, 'error', '未找到银库数据'); END IF;
+    IF v_total_silver < p_actual_amount THEN RETURN json_build_object('success', false, 'error', '银库余额不足'); END IF;
+
+    v_withheld := p_standard_amount - p_actual_amount;
+
+    -- 2. 扣除银库
+    UPDATE public.treasury SET total_silver = total_silver - p_actual_amount, updated_at = now() WHERE id = v_treasury_id;
+
+    -- 3. 更新接收人属性 (private_silver)
+    UPDATE public.players SET private_silver = private_silver + p_actual_amount, updated_at = now() WHERE id = p_recipient_uid;
+
+    -- 4. 写入明账 (steward_accounts.public_ledger)
+    v_public_entry := json_build_object(
+        'type', 'allowance',
+        'recipient_uid', p_recipient_uid,
+        'recipient_name', p_recipient_name,
+        'amount', p_actual_amount,
+        'timestamp', now()
+    );
+    UPDATE public.steward_accounts 
+    SET public_ledger = public_ledger || v_public_entry
+    WHERE steward_uid = p_steward_uid AND game_id = p_game_id;
+
+    -- 5. 写入明账流水 (ledger_entries)
+    INSERT INTO public.ledger_entries (game_id, treasury_id, ledger_type, entry_type, amount, actor_id, target_id, note)
+    VALUES (p_game_id, v_treasury_id, 'public', 'allocation', p_actual_amount, p_steward_uid, p_recipient_uid, '发放月例: ' || p_actual_amount || ' 两');
+
+    -- 6. 处理克扣
+    IF v_withheld > 0 THEN
+        -- 更新管家资产与暗账
+        v_private_entry := json_build_object(
+            'type', 'embezzlement',
+            'recipient_uid', p_recipient_uid,
+            'recipient_name', p_recipient_name,
+            'standard', p_standard_amount,
+            'actual', p_actual_amount,
+            'withheld', v_withheld,
+            'timestamp', now()
+        );
+        UPDATE public.steward_accounts 
+        SET private_assets = private_assets + v_withheld,
+            private_ledger = private_ledger || v_private_entry
+        WHERE steward_uid = p_steward_uid AND game_id = p_game_id;
+
+        -- 写入暗账流水 (ledger_entries)
+        INSERT INTO public.ledger_entries (game_id, treasury_id, ledger_type, entry_type, amount, actor_id, target_id, note)
+        VALUES (p_game_id, v_treasury_id, 'private', 'allocation', v_withheld, p_steward_uid, p_recipient_uid, '克扣月例: ' || v_withheld || ' 两');
+    END IF;
+
+    -- 7. 写入发放记录 (allowance_records)
+    INSERT INTO public.allowance_records (game_id, issued_by, player_id, amount_public, amount_actual, withheld_amount)
+    VALUES (p_game_id, p_steward_uid, p_recipient_uid, p_standard_amount, p_actual_amount, v_withheld);
+
+    -- 8. 风险检测 (简单逻辑：本局克扣总次数 >= 3 触发情报)
+    SELECT COUNT(*) INTO v_withheld_count FROM public.allowance_records 
+    WHERE game_id = p_game_id AND withheld_amount > 0;
+    
+    IF v_withheld_count >= 3 THEN
+        INSERT INTO public.intel_fragments (game_id, intel_type, content, source_uid, owner_uid, scene)
+        VALUES (p_game_id, 'account_leak', '府中已有三名下人因月例被扣私下议论，管家账目恐有疏漏。', p_steward_uid, p_steward_uid, 'treasury_room');
+    END IF;
+
+    RETURN json_build_object('success', true);
+EXCEPTION WHEN OTHERS THEN
+    RETURN json_build_object('success', false, 'error', SQLERRM);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 9. 批量发放 RPC
+CREATE OR REPLACE FUNCTION public.bulk_distribute_allowance_rpc(
+    p_steward_uid uuid,
+    p_game_id uuid,
+    p_distributions jsonb -- 数组：[{recipient_uid, recipient_name, actual_amount, standard_amount}]
+)
+RETURNS JSON AS $$
+DECLARE
+    v_dist jsonb;
+    v_res json;
+    v_total_distributed int := 0;
+BEGIN
+    FOR v_dist IN SELECT * FROM jsonb_array_elements(p_distributions)
+    LOOP
+        v_res := public.distribute_allowance_rpc(
+            p_steward_uid,
+            (v_dist->>'recipient_uid')::uuid,
+            v_dist->>'recipient_name',
+            (v_dist->>'actual_amount')::int,
+            (v_dist->>'standard_amount')::int,
+            p_game_id
+        );
+        IF NOT (v_res->>'success')::boolean THEN
+            RAISE EXCEPTION '发放失败: %', v_res->>'error';
+        END IF;
+        v_total_distributed := v_total_distributed + (v_dist->>'actual_amount')::int;
+    END LOOP;
+    RETURN json_build_object('success', true, 'total_distributed', v_total_distributed);
+EXCEPTION WHEN OTHERS THEN
+    RETURN json_build_object('success', false, 'error', SQLERRM);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 10. 获取银库发放统计 (用于计算亏空)
 CREATE OR REPLACE FUNCTION public.get_treasury_stats(p_game_id uuid)
 RETURNS TABLE(sum_public bigint, sum_withheld bigint) AS $$
 BEGIN
@@ -739,7 +863,9 @@ CREATE POLICY "players_manage_self" ON public.players
 
 -- 银库与账目操作 (开发环境允许 authenticated 插入)
 CREATE POLICY "auth_insert_treasury" ON public.treasury FOR INSERT WITH CHECK (true);
+CREATE POLICY "auth_update_treasury" ON public.treasury FOR UPDATE USING (true);
 CREATE POLICY "auth_insert_steward_accounts" ON public.steward_accounts FOR INSERT WITH CHECK (true);
+CREATE POLICY "auth_update_steward_accounts" ON public.steward_accounts FOR UPDATE USING (true);
 CREATE POLICY "auth_insert_ledger" ON public.ledger_entries FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "messages_involved" ON public.messages FOR SELECT USING (sender_uid = get_my_player_id() OR receiver_uid = get_my_player_id() OR carrier_uid = get_my_player_id());

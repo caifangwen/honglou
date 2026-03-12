@@ -8,7 +8,7 @@ serve(async (req) => {
   }
 
   try {
-    const { steward_uid, recipient_uid, actual_amount, standard_amount, game_id } = await req.json()
+    const { steward_uid, recipient_uid, recipient_name, actual_amount, standard_amount, game_id } = await req.json()
 
     // 1. 获取银库并校验
     const { data: treasury, error: tError } = await supabase
@@ -28,11 +28,18 @@ serve(async (req) => {
     // 扣除银库
     await supabase.rpc('decrement_treasury', { g_id: game_id, amount: actual_amount })
 
+    // 更新目标玩家私产
+    await supabase.rpc('modify_player_stats', {
+      p_id: recipient_uid,
+      private_silver_delta: actual_amount
+    })
+
     // 更新管家私产与账本
     if (withheld > 0) {
       const privateEntry = {
         type: 'embezzlement',
         recipient_uid,
+        recipient_name,
         standard: standard_amount,
         actual: actual_amount,
         withheld: withheld,
@@ -67,6 +74,7 @@ serve(async (req) => {
     const publicEntry = {
       type: 'allowance',
       recipient_uid,
+      recipient_name,
       amount: actual_amount,
       timestamp: new Date().toISOString()
     }
