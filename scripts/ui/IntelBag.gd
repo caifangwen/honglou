@@ -14,6 +14,7 @@ extends Control
 @onready var sell_qi_input     = $SellPopup/VBox/PriceGrid/QiInput
 @onready var sell_buyer_list   = $SellPopup/VBox/BuyerList
 @onready var toast_label       = $ToastLabel # 假设已添加
+@onready var block_btn: Button = get_node_or_null("DetailPopup/VBox/BlockBtn")
 
 const FRAGMENT_ITEM_SCENE = preload("res://scenes/components/IntelFragmentItem.tscn")
 
@@ -25,6 +26,8 @@ func _ready() -> void:
 	PlayerState.stamina_changed.connect(_on_stamina_changed)
 	PlayerState.qi_shu_changed.connect(_on_qi_shu_changed)
 	$SellPopup.confirmed.connect(_on_sell_confirmed)
+	if block_btn:
+		block_btn.pressed.connect(_on_block_btn_pressed)
 	
 	# 导航按钮连接
 	$TopBar/BackBtn.pressed.connect(_on_BackBtn_pressed)
@@ -85,6 +88,8 @@ func _on_fragment_selected(fragment_id: String) -> void:
 	var frag = _find_fragment(fragment_id)
 	if frag.is_empty(): return
 	
+	_selected_fragment_id = fragment_id
+	
 	detail_content.text = frag.get("content", "无内容")
 	
 	# 查询目标玩家名称 (这里假设 frag 有 about_player_id)
@@ -95,6 +100,8 @@ func _on_fragment_selected(fragment_id: String) -> void:
 	else:
 		detail_target.text = "指向目标: 无"
 		
+	if block_btn:
+		block_btn.visible = (PlayerState.role_class == "steward")
 	detail_popup.popup_centered()
 
 ## 出售情报：显示出售弹窗
@@ -138,6 +145,29 @@ func _on_sell_confirmed() -> void:
 		
 	var buyer_uid = sell_buyer_list.get_item_metadata(buyer_idx)
 	create_trade_offer(_selected_fragment_id, buyer_uid, silver, qi)
+
+func _on_block_btn_pressed() -> void:
+	if _selected_fragment_id == "":
+		_show_toast("请先选择一条情报")
+		return
+	_block_intel(_selected_fragment_id)
+
+func _block_intel(fragment_id: String) -> void:
+	var res = await SupabaseManager.db_rpc("steward_block_intel", {
+		"p_intel_id": fragment_id
+	})
+	var ok: bool = int(res.get("code", 0)) == 200
+	if ok:
+		var data = res.get("data")
+		if data is Dictionary and data.has("success") and data["success"] == false:
+			ok = false
+	
+	if ok:
+		_show_toast("已封锁该条情报，12 小时内他人无法查看")
+		refresh_bag()
+	else:
+		var err = str(res.get("error", res.get("data", {}).get("error", "未知错误")))
+		_show_toast("封锁失败: " + err)
 
 ## 创建交易请求
 func create_trade_offer(fragment_id: String, buyer_uid: String, silver: int, qi: int) -> void:

@@ -20,7 +20,8 @@ func setup(data: Dictionary):
 		1:
 			stage_indicator.text = "口耳相传"
 			stage_indicator.modulate = Color(0.8, 0.8, 0.5)  # 淡黄
-			suppress_btn.visible = (data.target_uid == PlayerState.player_db_id)
+			# 平息流言为管家特权，仅管家可见按钮
+			suppress_btn.visible = (PlayerState.role_class == "steward")
 		2:
 			stage_indicator.text = "人尽皆知"
 			stage_indicator.modulate = Color(0.9, 0.5, 0.2)  # 橙色
@@ -65,11 +66,18 @@ func _update_countdown():
 		countdown_label.text = "即将发酵..."
 
 func _on_suppress_btn_pressed():
-	# 弹出确认对话框
-	# 假设有一个全局 ConfirmDialog，如果没有则直接调用
-	var result = await SupabaseManager.invoke_function("suppress-rumor", {"rumor_id": rumor_data.id})
-	if result.get("success", false):
-		PlayerState.qi_shu -= 10
+	# 调用管家专用 RPC 平息流言
+	var res = await SupabaseManager.db_rpc("steward_suppress_rumor", {
+		"p_rumor_id": rumor_data.id
+	})
+	var ok: bool = int(res.get("code", 0)) == 200
+	if ok:
+		var data = res.get("data")
+		if data is Dictionary and data.has("success") and data["success"] == false:
+			ok = false
+	
+	if ok:
 		queue_free()
 	else:
-		print("压制失败: ", result.get("error", "未知错误"))
+		var err = str(res.get("error", res.get("data", {}).get("error", "未知错误")))
+		push_error("平息流言失败: %s" % err)
