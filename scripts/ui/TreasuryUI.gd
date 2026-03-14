@@ -17,6 +17,9 @@ extends Control
 # 新增：月例汇总与历史列表
 @onready var today_summary_label: Label = get_node_or_null("Header/TodaySummaryLabel")
 @onready var history_list: VBoxContainer = get_node_or_null("TabContainer/History/HistoryListVBox")
+@onready var account_popup: Control = get_node_or_null("AccountPopup")
+@onready var account_popup_content: ScrollContainer = get_node_or_null("AccountPopup/VBoxContainer/Content")
+@onready var account_popup_close_btn: Button = get_node_or_null("AccountPopup/VBoxContainer/CloseBtn")
 
 var current_steward_data: Dictionary = {}
 var current_treasury_data: Dictionary = {}
@@ -25,14 +28,18 @@ var allowance_history: Array = []
 func _ready() -> void:
 	# 初始化数据
 	_refresh_data()
-	
+
 	# 导航按钮连接
 	$Header/BackBtn.pressed.connect(_on_BackBtn_pressed)
 	$Header/InboxBtn.pressed.connect(_on_InboxBtn_pressed)
-	
+
 	if debug_allowance_btn:
 		debug_allowance_btn.pressed.connect(_on_DebugAllowanceBtn_pressed)
-	
+
+	# 账目弹窗关闭按钮连接
+	if account_popup_close_btn:
+		account_popup_close_btn.pressed.connect(_on_account_popup_close)
+
 	# 设置实时监听
 	SupabaseManager.subscribe_to_table("treasury")
 	SupabaseManager.subscribe_to_table("allowance_records")
@@ -182,6 +189,97 @@ func _update_history_ui() -> void:
 		item.add_child(name_label)
 		item.add_child(amount_label)
 		history_list.add_child(item)
+
+# 显示本次发放的账目信息
+func show_account_summary(distributions: Array, total_withheld: int) -> void:
+	if not account_popup or not account_popup_content:
+		push_error("[TreasuryUI] Account popup nodes not found, showing fallback message")
+		print("[账目信息] 发放人数：%d, 克扣总额：%d 两" % [distributions.size(), total_withheld])
+		return
+
+	# 获取 ScrollContainer 内部的 VBoxContainer
+	var content_vbox: VBoxContainer = account_popup_content.get_child(0) as VBoxContainer
+	if not content_vbox:
+		push_error("[TreasuryUI] Content VBoxContainer not found inside ScrollContainer")
+		return
+
+	# 清空旧内容
+	for child in content_vbox.get_children():
+		child.queue_free()
+
+	# 添加标题
+	var title_label = Label.new()
+	title_label.text = "本次发放账目"
+	title_label.add_theme_font_size_override("font_size", 18)
+	content_vbox.add_child(title_label)
+
+	var separator = HSeparator.new()
+	content_vbox.add_child(separator)
+
+	# 添加明细
+	var total_standard = 0
+	var total_actual = 0
+	for dist in distributions:
+		var item = VBoxContainer.new()
+		item.add_theme_constant_override("separation", 2)
+
+		var name_label = Label.new()
+		name_label.text = "领用人：%s" % dist.get("recipient_name", "未知")
+		name_label.add_theme_font_size_override("font_size", 14)
+		item.add_child(name_label)
+
+		var standard_label = Label.new()
+		var standard = dist.get("standard_amount", 0)
+		standard_label.text = "应发：%d 两" % standard
+		item.add_child(standard_label)
+
+		var actual_label = Label.new()
+		var actual = dist.get("actual_amount", 0)
+		actual_label.text = "实发：%d 两" % actual
+		item.add_child(actual_label)
+
+		var withheld = standard - actual
+		if withheld > 0:
+			var withheld_label = Label.new()
+			withheld_label.text = "克扣：%d 两" % withheld
+			withheld_label.add_theme_color_override("font_color", Color.ORANGE)
+			item.add_child(withheld_label)
+
+		total_standard += standard
+		total_actual += actual
+
+		content_vbox.add_child(item)
+		var space = Control.new()
+		space.custom_minimum_size = Vector2(0, 10)
+		content_vbox.add_child(space)
+
+	# 添加合计
+	var total_separator = HSeparator.new()
+	content_vbox.add_child(total_separator)
+
+	var summary_label = Label.new()
+	summary_label.text = "应发总计：%d 两" % total_standard
+	summary_label.add_theme_font_size_override("font_size", 16)
+	content_vbox.add_child(summary_label)
+
+	var actual_summary_label = Label.new()
+	actual_summary_label.text = "实发总计：%d 两" % total_actual
+	actual_summary_label.add_theme_font_size_override("font_size", 16)
+	content_vbox.add_child(actual_summary_label)
+
+	var withheld_summary_label = Label.new()
+	withheld_summary_label.text = "克扣总额：%d 两" % total_withheld
+	withheld_summary_label.add_theme_font_size_override("font_size", 16)
+	withheld_summary_label.add_theme_color_override("font_color", Color.ORANGE)
+	content_vbox.add_child(withheld_summary_label)
+
+	# 显示弹窗
+	account_popup.visible = true
+
+# 关闭账目信息弹窗
+func _on_account_popup_close() -> void:
+	if account_popup:
+		account_popup.visible = false
 
 func _initialize_treasury(game_id: String) -> void:
 	# 初始化银库数据
@@ -428,6 +526,15 @@ func distribute_allowance(target_uid: String, amount: int, standard: int):
 	_refresh_data()
 	print("[TreasuryUI] Data refreshed")
 
+	# 4. 显示账目信息弹窗
+	var distributions = [{
+		"recipient_uid": target_uid,
+		"recipient_name": target_name,
+		"standard_amount": standard,
+		"actual_amount": amount
+	}]
+	show_account_summary(distributions, withheld)
+
 func _recalculate_deficit(delta_withheld: int) -> void:
 	var game_id = GameState.current_game_id
 	
@@ -524,6 +631,9 @@ func _on_ConfirmAllocationBtn_pressed() -> void:
 	# 3. 刷新 UI
 	_refresh_data()
 	print("[TreasuryUI] 批量发放成功")
+
+	# 4. 显示账目信息弹窗
+	show_account_summary(distributions, total_withheld)
 
 func _on_ProcureBtn_pressed() -> void:
 	_execute_batch_action("procurement")

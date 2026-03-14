@@ -37,11 +37,11 @@ text = "总银两：--"
 
 [node name="TodaySummaryLabel" type="Label" parent="Header"]
 layout_mode = 2
-text = "今日应发合计: 0"
+text = "今日应发合计：0"
 
 [node name="ProsperityLabel" type="Label" parent="Header"]
 layout_mode = 2
-text = "繁荣度: Lv.1"
+text = "繁荣度：Lv.1"
 
 [node name="DeficitBar" type="ProgressBar" parent="Header"]
 custom_minimum_size = Vector2(100, 20)
@@ -132,7 +132,7 @@ text = "精力：--"
 
 [node name="PrivateAssetsLabel" type="Label" parent="ActionPanel"]
 layout_mode = 2
-text = "个人私产: **0**"
+text = "个人私产：**0**"
 
 [node name="DebugAllowanceBtn" type="Button" parent="ActionPanel"]
 layout_mode = 2
@@ -141,27 +141,77 @@ text = "【调试】快速发放首位"
 
 [node name="ProcureBtn" type="Button" parent="ActionPanel"]
 layout_mode = 2
-text = "采办物资（精力-1）"
+text = "采办物资（精力 -1）"
 
 [node name="AssignTaskBtn" type="Button" parent="ActionPanel"]
 layout_mode = 2
-text = "差使分派（精力-1）"
+text = "差使分派（精力 -1）"
 
 [node name="SearchGardenBtn" type="Button" parent="ActionPanel"]
 layout_mode = 2
-text = "搜检大观园（精力-2）"
+text = "搜检大观园（精力 -2）"
 
 [node name="AdvanceBtn" type="Button" parent="ActionPanel"]
 layout_mode = 2
-text = "预支批条（精力-1）"
+text = "预支批条（精力 -1）"
 
 [node name="SuppressRumorBtn" type="Button" parent="ActionPanel"]
 layout_mode = 2
-text = "平息流言（精力-2）"
+text = "平息流言（精力 -2）"
 
 [node name="BlockInfoBtn" type="Button" parent="ActionPanel"]
 layout_mode = 2
-text = "封锁消息（精力-3）"
+text = "封锁消息（精力 -3）"
+
+[node name="AccountPopup" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SemitransparentBg" type="ColorRect" parent="AccountPopup"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="AccountPopup"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="AccountPopup/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "账目信息"
+horizontal_alignment = 1
+
+[node name="Content" type="ScrollContainer" parent="AccountPopup/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="AccountPopup/VBoxContainer/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CloseBtn" type="Button" parent="AccountPopup/VBoxContainer"]
+layout_mode = 2
+text = "关闭"
 
 [connection signal="pressed" from="Header/BackBtn" to="." method="_on_BackBtn_pressed"]
 [connection signal="pressed" from="AllocationPanel/ConfirmAllocationBtn" to="." method="_on_ConfirmAllocationBtn_pressed"]
@@ -171,4 +221,4 @@ text = "封锁消息（精力-3）"
 [connection signal="pressed" from="ActionPanel/AdvanceBtn" to="." method="_on_AdvanceBtn_pressed"]
 [connection signal="pressed" from="ActionPanel/SuppressRumorBtn" to="." method="_on_SuppressRumorBtn_pressed"]
 [connection signal="pressed" from="ActionPanel/BlockInfoBtn" to="." method="_on_BlockInfoBtn_pressed"]
-
+[connection signal="pressed" from="AccountPopup/VBoxContainer/CloseBtn" to="." method="_on_account_popup_close"]
