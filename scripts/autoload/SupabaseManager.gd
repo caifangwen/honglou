@@ -217,8 +217,8 @@ class RumorChannel:
 	func _init(manager, name):
 		_manager = manager
 		_name = name
-	
-	func on(event_type, config, callback):
+
+	func on(_event_type, _config, callback):
 		_callback = callback
 		return self
 		

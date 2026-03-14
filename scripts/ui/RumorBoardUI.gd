@@ -4,6 +4,8 @@ extends Control
 const RUMOR_CARD = preload("res://scenes/RumorCard.tscn")
 const PUBLISH_PANEL = preload("res://scenes/PublishRumorPanel.tscn")
 
+var _publish_panel_instance: Control = null
+
 @onready var rumor_list_container = $ActiveRumors/RumorList
 @onready var internal_heat_bar = $Header/InternalHeatBar
 @onready var publish_btn = $PublishPanel/PublishBtn
@@ -29,12 +31,25 @@ func _ready():
 func _on_rumor_published(_data: Dictionary):
 	_load_rumors()
 
+func _on_publish_panel_visibility_changed():
+	if _publish_panel_instance and not _publish_panel_instance.visible:
+		# Panel was hidden, optionally refresh rumors
+		_load_rumors()
+
 func _on_back_pressed():
 	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
 
 func _on_publish_btn_pressed():
-	var panel = PUBLISH_PANEL.instantiate()
-	add_child(panel)
+	# Reuse existing panel or create new one
+	if _publish_panel_instance == null or not is_instance_valid(_publish_panel_instance):
+		_publish_panel_instance = PUBLISH_PANEL.instantiate()
+		add_child(_publish_panel_instance)
+		_publish_panel_instance.hide()
+		# Connect to panel's hidden signal to clean up when closed
+		_publish_panel_instance.visibility_changed.connect(_on_publish_panel_visibility_changed)
+	
+	_publish_panel_instance.visible = true
+	_publish_panel_instance.set_process_input(true)
 
 func _load_rumors():
 	# 清空现有卡片

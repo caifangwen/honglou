@@ -17,6 +17,7 @@ var selected_target_uid: String = ""
 @onready var close_btn = $Panel/CloseBtn
 
 func _ready():
+	print("[PublishRumorPanel] _ready() called")
 	stamina_label.text = "发布消耗：5点精力"
 	publish_btn.pressed.connect(_on_publish)
 	close_btn.pressed.connect(hide)
@@ -24,6 +25,7 @@ func _ready():
 	target_selector.item_selected.connect(_on_target_selected)
 	_load_players()
 	_load_intel_fragments()
+	print("[PublishRumorPanel] Panel initialized")
 
 func _on_tab_changed(tab: int):
 	selected_source_type = SourceType.INTEL_FRAGMENT if tab == 0 else SourceType.FREEWRITE
@@ -54,10 +56,10 @@ func _load_intel_fragments():
 		
 	if PlayerState.player_db_id == "":
 		return
-		
+
 	var fragments = await SupabaseManager.query(
-		"intel_fragments", 
-		{"owner_id": PlayerState.player_db_id, "is_used": false}
+		"intel_fragments",
+		{"owner_uid": PlayerState.player_db_id, "is_used": false}
 	)
 	
 	for f in fragments:
@@ -100,6 +102,13 @@ func _check_graft_availability():
 		graft_hint.visible = false
 
 func _on_publish():
+	print("[PublishRumorPanel] _on_publish() called")
+	
+	# Prevent multiple simultaneous calls
+	if publish_btn.disabled:
+		print("[PublishRumorPanel] Publish already in progress, ignoring")
+		return
+	
 	# 确保目标已选择
 	if target_selector.selected <= 0:
 		EventBus.show_notification.emit("请选择流言目标")
@@ -136,7 +145,11 @@ func _on_publish():
 		payload["intel_fragment_ids"] = selected_fragments.map(func(f): return f.id)
 	
 	publish_btn.disabled = true
+	publish_btn.text = "发布中..."
+	
 	var result = await SupabaseManager.invoke_function("publish-rumor", payload)
+	
+	publish_btn.text = "发布流言"
 	
 	if result is Dictionary and result.get("success", false):
 		EventBus.show_notification.emit("流言已悄悄散出，坐等发酵...")

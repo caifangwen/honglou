@@ -43,6 +43,14 @@ const DAY_NUMBERS = ["一", "二", "三", "四", "五", "六", "七", "八", "�
 # --- 状态变量 ---
 var _visible_sections: Array[String] = ["poetry", "energy", "rumor"]
 var _last_rumor_expiry: float = -1.0
+var _panel_visible: bool = true
+
+func _input(event: InputEvent) -> void:
+	# F12 快捷键切换时间面板显示
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F12:
+		_panel_visible = not _panel_visible
+		visible = _panel_visible
+		get_viewport().set_input_as_handled()
 
 func _ready() -> void:
 	# 连接信号
