@@ -3,20 +3,20 @@ extends Control
 # MessageCard.gd
 # 负责单条消息卡片的 UI 呈现和交互
 
-@onready var avatar: TextureRect = $Avatar
-@onready var sender_label: Label = $SenderLabel
-@onready var type_label: Label = $TypeLabel
-@onready var time_label: Label = $TimeLabel
-@onready var content_label: Label = $ContentLabel
-@onready var attachments_label: Label = $AttachmentsLabel
+@onready var avatar: TextureRect = $HBox/Avatar
+@onready var sender_label: Label = $HBox/VBox/Header/SenderLabel
+@onready var type_label: Label = $HBox/VBox/Header/TypeLabel
+@onready var time_label: Label = $HBox/VBox/Header/TimeLabel
+@onready var content_label: Label = $HBox/VBox/ContentLabel
+@onready var attachments_label: Label = $HBox/VBox/AttachmentsLabel
 @onready var unread_indicator: ColorRect = $UnreadIndicator
-@onready var reaction_buttons: HBoxContainer = $ReactionButtons
-@onready var action_buttons: HBoxContainer = $ActionButtons
+@onready var reaction_buttons: HBoxContainer = $HBox/VBox/ReactionButtons
+@onready var action_buttons: HBoxContainer = $HBox/VBox/ActionButtons
 
 # 流言专用组件
-@onready var rumor_panel: Control = $RumorPanel
-@onready var rumor_bar: ProgressBar = $RumorPanel/ProgressBar
-@onready var rumor_timer_label: Label = $RumorPanel/TimerLabel
+@onready var rumor_panel: Control = $HBox/VBox/RumorPanel
+@onready var rumor_bar: ProgressBar = $HBox/VBox/RumorPanel/ProgressBar
+@onready var rumor_timer_label: Label = $HBox/VBox/RumorPanel/TimerLabel
 
 var message_id: String = ""
 var message_data: Dictionary = {}
