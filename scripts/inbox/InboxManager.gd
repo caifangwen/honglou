@@ -53,8 +53,7 @@ func send_private_message(receiver_uid: String, content: String, attachments: Ar
         "content": content,
         "attachments": attachments,
         "stamina_cost": 1,
-        "is_read": false,
-        "created_at": Time.get_datetime_string_from_system(false, true)
+        "is_read": false
     }
     
     var res = await SupabaseManager.db_insert("messages", msg_data)

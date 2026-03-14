@@ -42,19 +42,34 @@ func _load_initial_contacts() -> void:
 	# 加载当前局内所有其他玩家作为初始联系人
 	var game_id = PlayerState.current_game_id
 	if game_id == "":
+		push_error("[ComposePanel] current_game_id is empty! PlayerState not loaded?")
 		return
-		
-	var endpoint = "/rest/v1/players?game_id=eq.%s&id=neq.%s&select=id,display_name,character_name" % [game_id, PlayerState.player_db_id]
+
+	print("[ComposePanel] Loading contacts for game_id: ", game_id, ", player_db_id: ", PlayerState.player_db_id)
+
+	var endpoint = "/rest/v1/players?current_game_id=eq.%s&id=neq.%s&select=id,display_name,character_name" % [game_id, PlayerState.player_db_id]
 	var res = await SupabaseManager.db_get(endpoint)
+
+	print("[ComposePanel] Contacts query result: ", res)
+
 	if res["code"] == 200:
 		receiver_list.clear()
+		if res["data"].is_empty():
+			print("[ComposePanel] No other players found in this game")
+			# 显示提示信息
+			receiver_list.add_item("(当前游戏中没有其他玩家)")
+			return
+
 		for player in res["data"]:
 			var label = "%s (%s)" % [player["display_name"], player["character_name"]]
 			receiver_list.add_item(label)
 			receiver_list.set_item_metadata(receiver_list.get_item_count() - 1, player["id"])
-		
+			print("[ComposePanel] Added contact: ", label)
+
 		if not res["data"].is_empty():
 			receiver_list.show()
+	else:
+		push_error("[ComposePanel] Failed to load contacts: ", res)
 
 func _update_stamina_hint() -> void:
 	var cost = 1 # 默认私信 1 点
@@ -83,7 +98,7 @@ func _on_receiver_search_changed(new_text: String) -> void:
 		# 仅输入一个字符时暂不搜索
 		return
 	
-	var endpoint = "/rest/v1/players?display_name=ilike.*%s*&game_id=eq.%s&id=neq.%s&select=id,display_name,character_name" % [new_text, PlayerState.current_game_id, PlayerState.player_db_id]
+	var endpoint = "/rest/v1/players?display_name=ilike.*%s*&current_game_id=eq.%s&id=neq.%s&select=id,display_name,character_name" % [new_text, PlayerState.current_game_id, PlayerState.player_db_id]
 	var res = await SupabaseManager.db_get(endpoint)
 	if res["code"] == 200:
 		receiver_list.clear()

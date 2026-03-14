@@ -127,15 +127,10 @@ func _auto_create_test_player() -> void:
 		_set_loading(false)
   
 func _on_auth_error(message: String) -> void: 
-	# 如果登录时报错 "Invalid login credentials"，可能是账号还没注册，自动注册一次
-	if _is_signing_in and ("invalid login" in message.to_lower() or "invalid_grant" in message.to_lower()):
-		_is_signing_in = false # 改成注册流程，防止死循环
-		SupabaseManager.sign_up(email_input.text, password_input.text)
-		return
-		
 	_set_loading(false) 
 	error_label.text = _localize_error(message) 
 	error_label.show() 
+	print("[Login] Auth error: ", message)
   
 func _set_loading(on: bool) -> void: 
 	loading_label.visible = on 
@@ -151,6 +146,8 @@ func _localize_error(raw: String) -> String:
 		return "邮箱或密码错误" 
 	if "user already registered" in low: 
 		return "该邮箱已注册，请直接登录" 
+	if "email not confirmed" in low:
+		return "该邮箱尚未验证，请检查邮件"
 	if "password should be" in low: 
 		return "密码至少需要6位" 
 	if "network" in low or "result:" in low:

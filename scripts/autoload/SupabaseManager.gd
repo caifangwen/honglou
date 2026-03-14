@@ -271,14 +271,17 @@ func _on_request_completed_async(result, response_code, _headers, body, http, en
 		return {"code": response_code, "data": parsed, "error": err_msg}
  
 	# 登录/注册成功：缓存 token 
-	if parsed is Dictionary and parsed.has("access_token"): 
-		access_token = str(parsed.get("access_token", "")) 
-		refresh_token = str(parsed.get("refresh_token", "")) 
-		var user_data = parsed.get("user", {})
+	if parsed is Dictionary and (parsed.has("access_token") or parsed.has("email")): 
+		if parsed.has("access_token"):
+			access_token = str(parsed.get("access_token", "")) 
+			refresh_token = str(parsed.get("refresh_token", "")) 
+		
+		var user_data = parsed.get("user", parsed) # sign_up returns user object directly sometimes, or nested in 'user'
 		if user_data is Dictionary:
 			current_uid = str(user_data.get("id", ""))
 			if last_username == "":
 				last_username = str(user_data.get("email", "")).split("@")[0]
+		
 		auth_success.emit(current_uid) 
  
 	var response = {"code": response_code, "data": parsed}
@@ -347,9 +350,11 @@ func _on_ws_message(message: String):
 	
 	# 处理数据变更
 	if event == "postgres_changes":
-		var table = payload.get("data", {}).get("table", "")
-		realtime_update.emit(table, payload.get("data", {}))
-		print("[Supabase Realtime] Data change in ", table)
+		var change_data = payload.get("data", {})
+		var table = change_data.get("table", "")
+		if table != "":
+			realtime_update.emit(table, change_data)
+			print("[Supabase Realtime] Data change in ", table, " - type: ", change_data.get("type", ""))
 
 # 定时心跳
 func _on_heartbeat_timer():
