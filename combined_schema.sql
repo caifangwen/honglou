@@ -869,7 +869,13 @@ CREATE POLICY "auth_update_steward_accounts" ON public.steward_accounts FOR UPDA
 CREATE POLICY "auth_insert_ledger" ON public.ledger_entries FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "messages_involved" ON public.messages FOR SELECT USING (sender_uid = get_my_player_id() OR receiver_uid = get_my_player_id() OR carrier_uid = get_my_player_id());
+CREATE POLICY "messages_insert" ON public.messages FOR INSERT WITH CHECK (sender_uid = get_my_player_id());
+CREATE POLICY "messages_update" ON public.messages FOR UPDATE USING (sender_uid = get_my_player_id() OR receiver_uid = get_my_player_id() OR carrier_uid = get_my_player_id());
+CREATE POLICY "messages_delete" ON public.messages FOR DELETE USING (sender_uid = get_my_player_id());
 CREATE POLICY "intel_owner" ON public.intel_fragments FOR SELECT USING (owner_uid = get_my_player_id());
+CREATE POLICY "intel_insert" ON public.intel_fragments FOR INSERT WITH CHECK (owner_uid = get_my_player_id());
+CREATE POLICY "intel_update" ON public.intel_fragments FOR UPDATE USING (owner_uid = get_my_player_id());
+CREATE POLICY "intel_delete" ON public.intel_fragments FOR DELETE USING (owner_uid = get_my_player_id());
 
 -- 授权
 GRANT ALL ON public.players TO authenticated;
