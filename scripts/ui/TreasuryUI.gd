@@ -21,6 +21,9 @@ extends Control
 @onready var account_popup_content: ScrollContainer = get_node_or_null("AccountPopup/VBoxContainer/Content")
 @onready var account_popup_close_btn: Button = get_node_or_null("AccountPopup/VBoxContainer/CloseBtn")
 
+# 调试标签
+@onready var debug_count_label: Label = get_node_or_null("TabContainer/PublicLedger/DebugCountLabel")
+
 var current_steward_data: Dictionary = {}
 var current_treasury_data: Dictionary = {}
 var allowance_history: Array = []
@@ -78,7 +81,7 @@ func _refresh_treasury_data() -> void:
 func _refresh_steward_data() -> void:
 	var game_id = GameState.current_game_id
 	var steward_uid = SupabaseManager.current_uid
-	
+
 	if steward_uid == "":
 		push_error("[TreasuryUI] Supabase current_uid is empty")
 		return
@@ -91,13 +94,13 @@ func _refresh_steward_data() -> void:
 		var current_stamina = p_data.get("stamina", 0)
 		var max_stamina = p_data.get("stamina_max", 6)
 		var p_db_id = p_data.get("id", "")
-		
+
 		# 同步到 PlayerState
 		PlayerState.silver = private_silver
 		PlayerState.stamina = current_stamina
 		PlayerState.stamina_max = max_stamina
 		PlayerState.player_db_id = p_db_id
-		
+
 		if private_assets_label:
 			private_assets_label.text = "个人私产: %d" % private_silver
 		if stamina_label:
@@ -105,9 +108,19 @@ func _refresh_steward_data() -> void:
 
 		# 2. 获取管家账本数据 (steward_accounts 表)
 		if p_db_id != "":
+			print("[TreasuryUI] 查询管家账本 - steward_uid: ", p_db_id, ", game_id: ", game_id)
 			var s_res = await SupabaseManager.db_get("/rest/v1/steward_accounts?steward_uid=eq.%s&game_id=eq.%s&select=*" % [p_db_id, game_id])
+			print("[TreasuryUI] 管家账本查询结果 - code: ", s_res["code"], ", data count: ", s_res["data"].size())
 			if s_res["code"] == 200 and not s_res["data"].is_empty():
 				current_steward_data = s_res["data"][0]
+				print("[TreasuryUI] current_steward_data: ", str(current_steward_data).substr(0, 500))
+				var public_ledger = current_steward_data.get("public_ledger", [])
+				var private_ledger = current_steward_data.get("private_ledger", [])
+				print("[TreasuryUI] 刷新账本数据 - 明账记录数: %d, 暗账记录数: %d" % [public_ledger.size(), private_ledger.size()])
+				if not public_ledger.is_empty():
+					print("[TreasuryUI] 最新明账记录：", str(public_ledger[-1]))
+				if not private_ledger.is_empty():
+					print("[TreasuryUI] 最新暗账记录：", str(private_ledger[-1]))
 				_update_ledger_ui()
 			elif s_res["code"] == 200:
 				# 如果没有，则初始化
@@ -117,12 +130,20 @@ func _refresh_steward_data() -> void:
 		push_error("[TreasuryUI] Failed to get player data: " + str(p_res.get("error", "Empty data")))
 
 func _update_ledger_ui() -> void:
+	print("[TreasuryUI] _update_ledger_ui 被调用")
+	print("[TreasuryUI] public_ledger_view 存在：", public_ledger_view != null)
+	print("[TreasuryUI] private_ledger_view 存在：", private_ledger_view != null)
+
+	# 获取 TabContainer 引用
+	var tab_container = get_node_or_null("TabContainer")
+	
 	# 更新明账
 	if public_ledger_view:
 		for child in public_ledger_view.get_children():
 			child.queue_free()
-		
+
 		var public_ledger = current_steward_data.get("public_ledger", [])
+		print("[TreasuryUI] 明账记录数：%d" % public_ledger.size())
 		for entry in public_ledger:
 			var label = Label.new()
 			var time = entry.get("timestamp", "").split("T")[0]
@@ -130,14 +151,23 @@ func _update_ledger_ui() -> void:
 			var recipient = entry.get("recipient_name", "未知")
 			var type = "发放" if entry.get("type") == "allowance" else "其他"
 			label.text = "[%s] 给 %s %s: %d 两" % [time, recipient, type, amount]
+			label.set_h_size_flags(Control.SIZE_EXPAND_FILL)
+			print("[TreasuryUI] 添加明账记录：", label.text)
 			public_ledger_view.add_child(label)
-			
+
+		print("[TreasuryUI] 明账更新完成，子节点数：", public_ledger_view.get_child_count())
+		
+		# 更新调试标签
+		if debug_count_label:
+			debug_count_label.text = "记录数：%d" % public_ledger.size()
+
 	# 更新暗账
 	if private_ledger_view:
 		for child in private_ledger_view.get_children():
 			child.queue_free()
-			
+
 		var private_ledger = current_steward_data.get("private_ledger", [])
+		print("[TreasuryUI] 暗账记录数：%d" % private_ledger.size())
 		for entry in private_ledger:
 			var label = Label.new()
 			var time = entry.get("timestamp", "").split("T")[0]
@@ -146,7 +176,25 @@ func _update_ledger_ui() -> void:
 			var type = "克扣" if entry.get("type") == "embezzlement" else "其他"
 			label.text = "[%s] 从 %s %s: %d 两" % [time, recipient, type, withheld]
 			label.add_theme_color_override("font_color", Color.ORANGE)
+			label.set_h_size_flags(Control.SIZE_EXPAND_FILL)
+			print("[TreasuryUI] 添加暗账记录：", label.text)
 			private_ledger_view.add_child(label)
+
+		print("[TreasuryUI] 暗账更新完成，子节点数：", private_ledger_view.get_child_count())
+	
+	# 刷新 TabContainer 显示
+	if tab_container:
+		# 强制刷新标签页内容（使用 deferred 确保在帧更新后执行）
+		tab_container.call_deferred("set_current_tab", 0)
+		print("[TreasuryUI] 切换到第 0 个标签页 (明账)")
+		# 确保 ScrollContainer 可见并刷新
+		var public_ledger_list = get_node_or_null("TabContainer/PublicLedger/LedgerList")
+		if public_ledger_list:
+			public_ledger_list.visible = true
+			public_ledger_list.queue_sort()
+		
+		# 强制重绘
+		tab_container.queue_redraw()
 
 func _refresh_allowance_data() -> void:
 	var game_id = GameState.current_game_id
@@ -521,6 +569,15 @@ func distribute_allowance(target_uid: String, amount: int, standard: int):
 	# 2. 重新计算亏空百分比并写入 game_state (games 表)
 	var withheld = standard - amount
 	await _recalculate_deficit(withheld)
+
+	# 3. 刷新 UI 前，先直接查询数据库验证
+	print("[TreasuryUI] 发放成功，直接查询数据库验证...")
+	var verify_res = await SupabaseManager.db_get("/rest/v1/steward_accounts?steward_uid=eq.%s&game_id=eq.%s&select=*" % [PlayerState.player_db_id, GameState.current_game_id])
+	print("[TreasuryUI] 验证查询结果 - data count: ", verify_res["data"].size())
+	if verify_res["data"].size() > 0:
+		var ledger_data = verify_res["data"][0]
+		print("[TreasuryUI] 验证 - 明账记录数：", (ledger_data.get("public_ledger", []) as Array).size())
+		print("[TreasuryUI] 验证 - 暗账记录数：", (ledger_data.get("private_ledger", []) as Array).size())
 
 	# 3. 刷新 UI
 	_refresh_data()

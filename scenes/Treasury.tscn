@@ -62,11 +62,18 @@ layout_mode = 2
 layout_mode = 2
 text = "明账（对外公示）"
 
+[node name="DebugCountLabel" type="Label" parent="TabContainer/PublicLedger"]
+layout_mode = 2
+text = "记录数：0"
+
 [node name="LedgerList" type="ScrollContainer" parent="TabContainer/PublicLedger"]
 layout_mode = 2
+size_flags_vertical = 3
 
 [node name="LedgerVBox" type="VBoxContainer" parent="TabContainer/PublicLedger/LedgerList"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
 [node name="PrivateLedger" type="VBoxContainer" parent="TabContainer"]
 layout_mode = 2
@@ -77,9 +84,12 @@ text = "暗账（真实数据）"
 
 [node name="PrivateLedgerList" type="ScrollContainer" parent="TabContainer/PrivateLedger"]
 layout_mode = 2
+size_flags_vertical = 3
 
 [node name="PrivateLedgerVBox" type="VBoxContainer" parent="TabContainer/PrivateLedger/PrivateLedgerList"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
 [node name="History" type="VBoxContainer" parent="TabContainer"]
 layout_mode = 2

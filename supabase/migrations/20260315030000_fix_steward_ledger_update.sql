@@ -1,7 +1,3 @@
--- Allowance RPCs for Treasury UI
--- Purpose: unblock PostgREST rpc calls (distribute_allowance_rpc / bulk_distribute_allowance_rpc / get_treasury_stats)
--- Note: intel_fragments.scene uses enum scene_location; use 'treasury_back' (not 'treasury_room').
-
 CREATE OR REPLACE FUNCTION public.distribute_allowance_rpc(
     p_steward_uid uuid,
     p_recipient_uid uuid,
@@ -52,7 +48,6 @@ BEGIN
         'timestamp', now()
     );
 
-    -- 使用 INSERT ... ON CONFLICT DO UPDATE 确保账本记录存在
     INSERT INTO public.steward_accounts (game_id, steward_uid, public_ledger, updated_at)
     VALUES (p_game_id, p_steward_uid, jsonb_build_array(v_public_entry), now())
     ON CONFLICT (game_id, steward_uid) DO UPDATE
@@ -77,7 +72,7 @@ BEGIN
         p_actual_amount,
         p_steward_uid,
         p_recipient_uid,
-        '发放月例: ' || p_actual_amount || ' 两'
+        '发放月例：' || p_actual_amount || ' 两'
     );
 
     IF v_withheld > 0 THEN
@@ -91,7 +86,6 @@ BEGIN
             'timestamp', now()
         );
 
-        -- 更新暗账（如果记录不存在，INSERT ... ON CONFLICT 会处理）
         INSERT INTO public.steward_accounts (game_id, steward_uid, private_assets, private_ledger, updated_at)
         VALUES (p_game_id, p_steward_uid, v_withheld, jsonb_build_array(v_private_entry), now())
         ON CONFLICT (game_id, steward_uid) DO UPDATE
@@ -117,26 +111,9 @@ BEGIN
             v_withheld,
             p_steward_uid,
             p_recipient_uid,
-            '克扣月例: ' || v_withheld || ' 两'
+            '克扣月例：' || v_withheld || ' 两'
         );
     END IF;
-
-    INSERT INTO public.allowance_records (
-        game_id,
-        issued_by,
-        player_id,
-        amount_public,
-        amount_actual,
-        withheld_amount
-    )
-    VALUES (
-        p_game_id,
-        p_steward_uid,
-        p_recipient_uid,
-        p_standard_amount,
-        p_actual_amount,
-        v_withheld
-    );
 
     SELECT COUNT(*)
     INTO v_withheld_count
@@ -169,58 +146,3 @@ EXCEPTION
         RETURN json_build_object('success', false, 'error', SQLERRM);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE OR REPLACE FUNCTION public.bulk_distribute_allowance_rpc(
-    p_steward_uid uuid,
-    p_game_id uuid,
-    p_distributions jsonb
-)
-RETURNS json AS $$
-DECLARE
-    v_dist jsonb;
-    v_res json;
-    v_total_distributed int := 0;
-BEGIN
-    FOR v_dist IN
-        SELECT *
-        FROM jsonb_array_elements(p_distributions)
-    LOOP
-        v_res := public.distribute_allowance_rpc(
-            p_steward_uid,
-            (v_dist->>'recipient_uid')::uuid,
-            v_dist->>'recipient_name',
-            (v_dist->>'actual_amount')::int,
-            (v_dist->>'standard_amount')::int,
-            p_game_id
-        );
-
-        IF NOT (v_res->>'success')::boolean THEN
-            RAISE EXCEPTION '发放失败: %', v_res->>'error';
-        END IF;
-
-        v_total_distributed := v_total_distributed + (v_dist->>'actual_amount')::int;
-    END LOOP;
-
-    RETURN json_build_object('success', true, 'total_distributed', v_total_distributed);
-EXCEPTION
-    WHEN OTHERS THEN
-        RETURN json_build_object('success', false, 'error', SQLERRM);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE OR REPLACE FUNCTION public.get_treasury_stats(p_game_id uuid)
-RETURNS TABLE(sum_public bigint, sum_withheld bigint) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT
-        COALESCE(SUM(amount_public)::bigint, 0),
-        COALESCE(SUM(withheld_amount)::bigint, 0)
-    FROM public.allowance_records
-    WHERE game_id = p_game_id;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-GRANT EXECUTE ON FUNCTION public.distribute_allowance_rpc(uuid, uuid, text, int, int, uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.bulk_distribute_allowance_rpc(uuid, uuid, jsonb) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_treasury_stats(uuid) TO authenticated;
-

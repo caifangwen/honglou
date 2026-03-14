@@ -34,7 +34,27 @@ serve(async (req) => {
       private_silver_delta: actual_amount
     })
 
-    // 更新管家私产与账本
+    // 更新管家账本（明账 + 暗账）
+    const { data: stewardAcc } = await supabase
+      .from('steward_accounts')
+      .select('public_ledger, private_ledger, private_assets')
+      .eq('steward_uid', steward_uid)
+      .eq('game_id', game_id)
+      .single()
+
+    const updateData: any = {}
+
+    // 1. 写入明账（总是添加）
+    const publicEntry = {
+      type: 'allowance',
+      recipient_uid,
+      recipient_name,
+      amount: actual_amount,
+      timestamp: new Date().toISOString()
+    }
+    updateData.public_ledger = [...(stewardAcc?.public_ledger || []), publicEntry]
+
+    // 2. 写入暗账（如果有克扣）
     if (withheld > 0) {
       const privateEntry = {
         type: 'embezzlement',
@@ -45,43 +65,13 @@ serve(async (req) => {
         withheld: withheld,
         timestamp: new Date().toISOString()
       }
-      
-      const { data: account } = await supabase
-        .from('steward_accounts')
-        .select('private_assets, private_ledger')
-        .eq('steward_uid', steward_uid)
-        .eq('game_id', game_id)
-        .single()
-
-      await supabase
-        .from('steward_accounts')
-        .update({ 
-          private_assets: (account?.private_assets || 0) + withheld,
-          private_ledger: [...(account?.private_ledger || []), privateEntry]
-        })
-        .eq('steward_uid', steward_uid)
-        .eq('game_id', game_id)
+      updateData.private_ledger = [...(stewardAcc?.private_ledger || []), privateEntry]
+      updateData.private_assets = (stewardAcc?.private_assets || 0) + withheld
     }
 
-    // 写入明账
-    const { data: stewardAcc } = await supabase
-      .from('steward_accounts')
-      .select('public_ledger')
-      .eq('steward_uid', steward_uid)
-      .eq('game_id', game_id)
-      .single()
-
-    const publicEntry = {
-      type: 'allowance',
-      recipient_uid,
-      recipient_name,
-      amount: actual_amount,
-      timestamp: new Date().toISOString()
-    }
-    
     await supabase
       .from('steward_accounts')
-      .update({ public_ledger: [...(stewardAcc?.public_ledger || []), publicEntry] })
+      .update(updateData)
       .eq('steward_uid', steward_uid)
       .eq('game_id', game_id)
 
