@@ -11,6 +11,14 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
+[node name="ErrorDialog" type="AcceptDialog" parent="."]
+title = "错误"
+size = Vector2i(400, 150)
+
+[node name="InfoDialog" type="AcceptDialog" parent="."]
+title = "提示"
+size = Vector2i(400, 150)
+
 [node name="BackButton" type="Button" parent="."]
 layout_mode = 0
 offset_left = 20.0
@@ -25,62 +33,86 @@ anchors_preset = 13
 anchor_left = 0.5
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -400.0
-offset_right = 400.0
+offset_left = -450.0
+offset_top = 30.0
+offset_right = 450.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 20
+theme_override_constants/separation = 15
 alignment = 1
 
 [node name="TitleLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 28
 text = "选择监听场景"
+horizontal_alignment = 1
+
+[node name="StaminaLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "当前精力：8/8 | 消耗：2"
 horizontal_alignment = 1
 
 [node name="GridContainer" type="GridContainer" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_constants/h_separation = 20
-theme_override_constants/v_separation = 20
+theme_override_constants/h_separation = 15
+theme_override_constants/v_separation = 15
 columns = 3
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 alignment = 1
+theme_override_constants/separation = 15
 
-[node name="Label" type="Label" parent="VBoxContainer/HBoxContainer"]
+[node name="DurationLabel" type="Label" parent="VBoxContainer/HBoxContainer"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "挂机时长："
 
 [node name="SpinBox" type="SpinBox" parent="VBoxContainer/HBoxContainer"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 16
 min_value = 1.0
 max_value = 8.0
 value = 1.0
+step = 1.0
 
-[node name="Label2" type="Label" parent="VBoxContainer/HBoxContainer"]
+[node name="HourLabel" type="Label" parent="VBoxContainer/HBoxContainer"]
 layout_mode = 2
 text = "小时"
 
-[node name="StartBtn" type="Button" parent="VBoxContainer"]
-custom_minimum_size = Vector2(200, 50)
+[node name="RefreshBtn" type="Button" parent="VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(100, 40)
 layout_mode = 2
-size_flags_horizontal = 4
-text = "开始挂机"
+text = "刷新"
 
 [node name="DuoPanel" type="Panel" parent="VBoxContainer"]
 visible = false
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 
 [node name="PartnerLabel" type="Label" parent="VBoxContainer/DuoPanel"]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 26.0
+offset_bottom = 30.0
 grow_horizontal = 2
+theme_override_font_sizes/font_size = 20
 text = "搭档：某某某"
 horizontal_alignment = 1
+
+[node name="PartnerDesc" type="Label" parent="VBoxContainer/DuoPanel"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -80.0
+offset_bottom = -10.0
+grow_horizontal = 2
+text = "双人挂机可获得 +20% 触发率奖励和额外情报碎片"
+horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="OptionButton" type="OptionButton" parent="VBoxContainer/DuoPanel"]
 layout_mode = 1
@@ -88,7 +120,14 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -40.0
+offset_top = -50.0
 grow_horizontal = 2
 grow_vertical = 0
 alignment = 1
+
+[node name="StartBtn" type="Button" parent="VBoxContainer"]
+custom_minimum_size = Vector2(250, 55)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 22
+text = "开始挂机"

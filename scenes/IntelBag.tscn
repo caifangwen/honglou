@@ -31,12 +31,12 @@ size_flags_horizontal = 3
 [node name="StaminaLabel" type="Label" parent="TopBar"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "精力: 8/8"
+text = "精力：8/8"
 
 [node name="QiShuLabel" type="Label" parent="TopBar"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "气数: 100"
+text = "气数：100"
 
 [node name="Spacer2" type="Control" parent="TopBar"]
 layout_mode = 2
@@ -56,11 +56,59 @@ offset_bottom = -80.0
 grow_horizontal = 2
 grow_vertical = 2
 
+[node name="FilterBar" type="HBoxContainer" parent="Middle"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -380.0
+offset_right = 380.0
+offset_bottom = 40.0
+grow_horizontal = 2
+theme_override_constants/separation = 10
+
+[node name="TypeLabel" type="Label" parent="Middle/FilterBar"]
+layout_mode = 2
+text = "类型:"
+
+[node name="TypeOption" type="OptionButton" parent="Middle/FilterBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SceneLabel" type="Label" parent="Middle/FilterBar"]
+layout_mode = 2
+text = "场景:"
+
+[node name="SceneOption" type="OptionButton" parent="Middle/FilterBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ValueLabel" type="Label" parent="Middle/FilterBar"]
+layout_mode = 2
+text = "价值:"
+
+[node name="ValueOption" type="OptionButton" parent="Middle/FilterBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SortLabel" type="Label" parent="Middle/FilterBar"]
+layout_mode = 2
+text = "排序:"
+
+[node name="SortOption" type="OptionButton" parent="Middle/FilterBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ClearFilterBtn" type="Button" parent="Middle/FilterBar"]
+layout_mode = 2
+text = "清除筛选"
+
 [node name="ScrollContainer" type="ScrollContainer" parent="Middle"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = 50.0
 grow_horizontal = 2
 grow_vertical = 2
 horizontal_scroll_mode = 0
@@ -94,24 +142,35 @@ text = "前往蜂腰桥集市"
 
 [node name="DetailPopup" type="AcceptDialog" parent="."]
 title = "情报详情"
-size = Vector2i(400, 300)
+size = Vector2i(450, 350)
 unresizable = true
 
 [node name="VBox" type="VBoxContainer" parent="DetailPopup"]
 offset_left = 8.0
 offset_top = 8.0
-offset_right = 392.0
-offset_bottom = 251.0
+offset_right = 442.0
+offset_bottom = 301.0
 theme_override_constants/separation = 10
 
 [node name="ContentLabel" type="Label" parent="DetailPopup/VBox"]
 layout_mode = 2
 autowrap_mode = 3
+theme_override_font_sizes/font_size = 16
+
+[node name="TypeLabel" type="Label" parent="DetailPopup/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.7, 1, 1)
+text = "类型："
+
+[node name="ValueLabel" type="Label" parent="DetailPopup/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84, 0, 1)
+text = "价值："
 
 [node name="TargetLabel" type="Label" parent="DetailPopup/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.4, 0.7, 1, 1)
-text = "指向目标: "
+text = "指向目标："
 
 [node name="BlockBtn" type="Button" parent="DetailPopup/VBox"]
 layout_mode = 2
