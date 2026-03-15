@@ -81,7 +81,7 @@ alignment = 1
 
 [node name="Label" type="Label" parent="Panel/StaminaCost"]
 layout_mode = 2
-text = "消耗 5 点精力"
+text = "发布消耗：5 点精力"
 
 [node name="GraftHint" type="Label" parent="Panel"]
 visible = false

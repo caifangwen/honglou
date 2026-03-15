@@ -1,13 +1,14 @@
-extends Control 
-  
-@onready var email_input    = $CenterContainer/LoginPanel/EmailInput 
-@onready var password_input = $CenterContainer/LoginPanel/PasswordInput 
-@onready var error_label    = $CenterContainer/LoginPanel/ErrorLabel 
-@onready var loading_label  = $CenterContainer/LoginPanel/LoadingLabel 
-@onready var login_btn      = $CenterContainer/LoginPanel/LoginBtn 
-@onready var register_btn   = $CenterContainer/LoginPanel/RegisterBtn 
+# Login.gd - 修复版
+extends Control
+
+@onready var email_input    = $CenterContainer/LoginPanel/EmailInput
+@onready var password_input = $CenterContainer/LoginPanel/PasswordInput
+@onready var error_label    = $CenterContainer/LoginPanel/ErrorLabel
+@onready var loading_label  = $CenterContainer/LoginPanel/LoadingLabel
+@onready var login_btn      = $CenterContainer/LoginPanel/LoginBtn
+@onready var register_btn   = $CenterContainer/LoginPanel/RegisterBtn
 @onready var quick_login_grid = $CenterContainer/LoginPanel/QuickLoginGrid
-  
+
 var _is_signing_in: bool = false
 
 var test_accounts = [
@@ -18,12 +19,11 @@ var test_accounts = [
 	{"name": "贾母 (元老)", "email": "jiamu@example.com", "pass": "123456"}
 ]
 
-func _ready() -> void: 
-	error_label.hide() 
-	loading_label.hide() 
-	SupabaseManager.auth_success.connect(_on_auth_success) 
-	SupabaseManager.auth_error.connect(_on_auth_error) 
-	
+func _ready() -> void:
+	error_label.hide()
+	loading_label.hide()
+	SupabaseManager.auth_success.connect(_on_auth_success)
+	SupabaseManager.auth_error.connect(_on_auth_error)
 	_setup_quick_login_buttons()
 
 func _setup_quick_login_buttons() -> void:
@@ -36,42 +36,44 @@ func _setup_quick_login_buttons() -> void:
 
 func _on_quick_account_pressed(acc: Dictionary) -> void:
 	_is_signing_in = true
-	_set_loading(true)
+	print("[Login] Quick login started: email=%s, _is_signing_in=%s" % [acc["email"], _is_signing_in])
 	email_input.text = acc["email"]
 	password_input.text = acc["pass"]
 	SupabaseManager.sign_in(acc["email"], acc["pass"])
 
-func _on_login_btn_pressed() -> void: 
+func _on_login_btn_pressed() -> void:
 	_is_signing_in = true
-	_set_loading(true) 
+	_set_loading(true)
 	var input = email_input.text.strip_edges()
 	if "@" in input:
-		SupabaseManager.sign_in(input, password_input.text) 
+		SupabaseManager.sign_in(input, password_input.text)
 	else:
-		SupabaseManager.sign_in_with_username(input, password_input.text) 
-  
-func _on_register_btn_pressed() -> void: 
+		SupabaseManager.sign_in_with_username(input, password_input.text)
+
+func _on_register_btn_pressed() -> void:
 	_is_signing_in = false
-	_set_loading(true) 
-	SupabaseManager.sign_up(email_input.text.strip_edges(), 
-							password_input.text) 
-  
-func _on_auth_success(uid: String) -> void: 
-	_set_loading(false) 
-	# 查询该 uid 是否已建立角色 
-	var res = await SupabaseManager.db_get( 
-		"/rest/v1/players?auth_uid=eq.%s&select=*" % uid 
-	) 
-	_on_player_check(res) 
-  
-func _on_player_check(response: Dictionary) -> void: 
-	var data = response["data"] 
-	if data is Array and data.size() > 0: 
-		# 已有角色 → 加载状态 → 进 Hub 
-		var p = data[0] 
+	_set_loading(true)
+	SupabaseManager.sign_up(email_input.text.strip_edges(), password_input.text)
+
+func _on_auth_success(uid: String) -> void:
+	print("[Login] _on_auth_success: uid=%s" % uid)
+	_set_loading(false)
+	# 查询该 uid 是否已建立角色
+	var res = await SupabaseManager.db_get("/rest/v1/players?auth_uid=eq.%s&select=*" % uid)
+	_on_player_check(res)
+
+func _on_player_check(response: Dictionary) -> void:
+	print("[Login] _on_player_check: response code=%s, data=%s" % [response.get("code", "N/A"), response.get("data", "N/A")])
+	print("[Login] _is_signing_in=%s, email=%s" % [_is_signing_in, email_input.text])
+	var data = response["data"]
+	if data is Array and data.size() > 0:
+		# 已有角色 → 加载状态 → 进 Hub
+		var p = data[0]
+		print("[Login] Loading existing player: %s" % p)
 		PlayerState.uid = SupabaseManager.current_uid
 		PlayerState.load_from_db(p)
-		
+		print("[Login] PlayerState.player_db_id=%s, current_game_id=%s" % [PlayerState.player_db_id, PlayerState.current_game_id])
+
 		# 如果是管家，额外获取私产信息并合并
 		if PlayerState.role_class == "steward":
 			var s_res = await SupabaseManager.db_get(
@@ -79,33 +81,43 @@ func _on_player_check(response: Dictionary) -> void:
 			)
 			if s_res["code"] == 200 and not s_res["data"].is_empty():
 				PlayerState.silver = s_res["data"][0].get("private_assets", PlayerState.silver)
+
+		get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+	else:
+		# 检查是否是测试账号
+		var is_test_account = "@example.com" in email_input.text
+		print("[Login] No player found, is_test_account=%s" % is_test_account)
 		
-		get_tree().change_scene_to_file("res://scenes/Hub.tscn") 
-	else: 
-		# 快捷登录时，如果发现没有角色，自动创建一个 (仅限测试环境)
-		if _is_signing_in and "@example.com" in email_input.text:
+		if _is_signing_in and is_test_account:
+			print("[Login] Creating test player for %s" % email_input.text)
 			await _auto_create_test_player()
 			return
-			
-		# 新玩家 → 角色选择 
-		get_tree().change_scene_to_file("res://scenes/RoleSelect.tscn") 
+
+		# 新玩家 → 角色选择
+		print("[Login] No player found, going to role selection")
+		get_tree().change_scene_to_file("res://scenes/RoleSelect.tscn")
 
 func _auto_create_test_player() -> void:
+	print("[Login] _auto_create_test_player() called")
 	var role = "steward"
 	var char_name = "凤姐"
 	var username = email_input.text.split("@")[0]
-	
+
 	# 根据邮箱自动映射角色
 	if "xiren" in username: role = "servant"; char_name = "袭人"
 	elif "qingwen" in username: role = "servant"; char_name = "晴雯"
 	elif "jiamu" in username: role = "elder"; char_name = "贾母"
 	elif "pinger" in username: role = "steward"; char_name = "平儿"
 	elif "fengjie" in username: role = "steward"; char_name = "凤姐"
-	
+
+	print("[Login] Creating player: username=%s, role=%s, auth_uid=%s, game_id=%s" % [
+		username, role, SupabaseManager.current_uid, GameState.current_game_id
+	])
+
 	var new_player = {
 		"auth_uid": SupabaseManager.current_uid,
 		"username": username,
-		"display_name": username, # 初始显示名使用用户名
+		"display_name": username,
 		"character_name": char_name,
 		"role_class": role,
 		"current_game_id": GameState.current_game_id,
@@ -116,40 +128,48 @@ func _auto_create_test_player() -> void:
 		"reputation": 50,
 		"qi_points": 100
 	}
-	
+
 	var res = await SupabaseManager.db_insert("players", new_player)
-	if res["code"] == 201:
-		PlayerState.load_from_db(res["data"][0])
+	print("[Login] Player insert result: code=%s, data=%s, error=%s" % [
+		res.get("code", "N/A"), res.get("data", "N/A"), res.get("error", "N/A")
+	])
+
+	if res["code"] == 201 or res["code"] == 200:
+		var player_data = res["data"]
+		if player_data is Array:
+			player_data = player_data[0]
+		PlayerState.load_from_db(player_data)
+		print("[Login] Player created successfully: player_db_id=%s" % PlayerState.player_db_id)
 		get_tree().change_scene_to_file("res://scenes/Hub.tscn")
 	else:
-		error_label.text = "自动创建角色失败: " + str(res.get("error", "Unknown"))
+		error_label.text = "自动创建角色失败：" + str(res.get("error", "Unknown"))
 		error_label.show()
 		_set_loading(false)
-  
-func _on_auth_error(message: String) -> void: 
-	_set_loading(false) 
-	error_label.text = _localize_error(message) 
-	error_label.show() 
+
+func _on_auth_error(message: String) -> void:
+	_set_loading(false)
+	error_label.text = _localize_error(message)
+	error_label.show()
 	print("[Login] Auth error: ", message)
-  
-func _set_loading(on: bool) -> void: 
-	loading_label.visible = on 
-	login_btn.disabled = on 
-	register_btn.disabled = on 
+
+func _set_loading(on: bool) -> void:
+	loading_label.visible = on
+	login_btn.disabled = on
+	register_btn.disabled = on
 	for btn in quick_login_grid.get_children():
 		if btn is Button:
 			btn.disabled = on
-  
-func _localize_error(raw: String) -> String: 
+
+func _localize_error(raw: String) -> String:
 	var low = raw.to_lower()
-	if "invalid login" in low or "invalid_grant" in low: 
-		return "邮箱或密码错误" 
-	if "user already registered" in low: 
-		return "该邮箱已注册，请直接登录" 
+	if "invalid login" in low or "invalid_grant" in low:
+		return "邮箱或密码错误"
+	if "user already registered" in low:
+		return "该邮箱已注册，请直接登录"
 	if "email not confirmed" in low:
 		return "该邮箱尚未验证，请检查邮件"
-	if "password should be" in low: 
-		return "密码至少需要6位" 
+	if "password should be" in low:
+		return "密码至少需要 6 位"
 	if "network" in low or "result:" in low:
 		return "网络连接失败，请检查 URL 配置或网络"
-	return "错误: " + raw 
+	return "错误：" + raw

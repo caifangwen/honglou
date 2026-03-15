@@ -42,8 +42,20 @@ func setup(data: Dictionary):
 		suppress_btn.pressed.connect(_on_suppress_btn_pressed)
 
 func _get_target_name(data: Dictionary) -> String:
-	if data.has("players") and data["players"].has("display_name"):
-		return data["players"]["display_name"]
+	# 尝试多种可能的数据结构
+	# 1. target_player 是数组（Supabase 外键关联返回的格式）
+	if data.has("target_player") and data["target_player"] is Array and data["target_player"].size() > 0:
+		if data["target_player"][0] is Dictionary and data["target_player"][0].has("display_name"):
+			return data["target_player"][0]["display_name"]
+	# 2. target_player 是字典
+	if data.has("target_player") and data["target_player"] is Dictionary:
+		if data["target_player"].has("display_name"):
+			return data["target_player"]["display_name"]
+	# 3. 兼容旧格式：players 嵌套结构
+	if data.has("players") and data["players"] is Dictionary:
+		if data["players"].has("display_name"):
+			return data["players"]["display_name"]
+	# 4. 如果都没有，返回占位符
 	return "某人"
 
 func _process(_delta):
