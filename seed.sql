@@ -85,39 +85,28 @@ DELETE FROM public.eavesdrop_sessions WHERE player_uid IN (
     '55555555-5555-5555-5555-555555555555'
 );
 
--- 删除 players 和 auth.users
+-- 删除 players（本地环境没有 auth.users 表）
 DELETE FROM public.players WHERE auth_uid IN (
-    SELECT id FROM auth.users WHERE email IN (
-        'fengjie@example.com', 'baoyu@test.com', 'daiyu@test.com',
-        'xiren@example.com', 'qingwen@example.com'
-    )
+    '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222',
+    '33333333-3333-3333-3333-333333333333', '44444444-4444-4444-4444-444444444444',
+    '55555555-5555-5555-5555-555555555555'
 );
 
-DELETE FROM auth.users WHERE email IN (
-    'fengjie@example.com', 'baoyu@test.com', 'daiyu@test.com',
-    'xiren@example.com', 'qingwen@example.com'
-);
+-- 以下仅在 Supabase 环境执行（auth.users 是 Supabase 特有表）
+-- DELETE FROM auth.users WHERE email IN (...);
 
 -- ============================================================
 -- 4. 创建测试账号
 -- ============================================================
 
+-- 注意：以下 auth.users 插入语句仅在 Supabase 环境执行
+-- 本地开发环境跳过 Auth 用户创建，直接创建 public.players 测试数据
 -- 密码均为：123456
-INSERT INTO auth.users (
-    instance_id, id, aud, role, email, encrypted_password,
-    email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
-    created_at, updated_at, confirmation_token, recovery_token,
-    email_change_token_new, email_change
-)
-VALUES
-    ('00000000-0000-0000-0000-000000000000', '11111111-1111-1111-1111-111111111111', 'authenticated', 'authenticated', 'fengjie@example.com', crypt('123456', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"name": "凤姐"}', now(), now(), '', '', '', ''),
-    ('00000000-0000-0000-0000-000000000000', '22222222-2222-2222-2222-222222222222', 'authenticated', 'authenticated', 'baoyu@test.com', crypt('123456', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"name": "宝玉"}', now(), now(), '', '', '', ''),
-    ('00000000-0000-0000-0000-000000000000', '33333333-3333-3333-3333-333333333333', 'authenticated', 'authenticated', 'daiyu@test.com', crypt('123456', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"name": "黛玉"}', now(), now(), '', '', '', ''),
-    ('00000000-0000-0000-0000-000000000000', '44444444-4444-4444-4444-444444444444', 'authenticated', 'authenticated', 'xiren@example.com', crypt('123456', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"name": "袭人"}', now(), now(), '', '', '', ''),
-    ('00000000-0000-0000-0000-000000000000', '55555555-5555-5555-5555-555555555555', 'authenticated', 'authenticated', 'qingwen@example.com', crypt('123456', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"name": "晴雯"}', now(), now(), '', '', '', '')
-ON CONFLICT (id) DO NOTHING;
 
--- 关联到 public.players
+-- Supabase 环境专用（本地跳过）
+-- INSERT INTO auth.users (...) VALUES ... ON CONFLICT (id) DO NOTHING;
+
+-- 直接创建测试玩家（本地环境）
 INSERT INTO public.players (id, auth_uid, username, display_name, character_name, role_class, current_game_id, silver, private_silver, reputation)
 VALUES
     ('11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'fengjie', '凤辣子', '凤姐', 'steward', '00000000-0000-0000-0000-000000000001', 100, 500, 80),

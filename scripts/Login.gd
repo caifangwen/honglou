@@ -1,4 +1,4 @@
-# Login.gd - 修复版
+# Login.gd - 支持本地/云端切换
 extends Control
 
 @onready var email_input    = $CenterContainer/LoginPanel/EmailInput
@@ -10,21 +10,34 @@ extends Control
 @onready var quick_login_grid = $CenterContainer/LoginPanel/QuickLoginGrid
 
 var _is_signing_in: bool = false
+var _is_local_mode: bool = false
 
+# 测试账号（本地模式使用固定 UID 映射）
 var test_accounts = [
-	{"name": "凤姐 (管家)", "email": "fengjie@example.com", "pass": "123456"},
-	{"name": "平儿 (管家)", "email": "pinger@example.com", "pass": "123456"},
-	{"name": "袭人 (丫鬟)", "email": "xiren@example.com", "pass": "123456"},
-	{"name": "晴雯 (丫鬟)", "email": "qingwen@example.com", "pass": "123456"},
-	{"name": "贾母 (元老)", "email": "jiamu@example.com", "pass": "123456"}
+	{"name": "凤姐 (管家)", "email": "fengjie@example.com", "pass": "123456", "uid": "11111111-1111-1111-1111-111111111111"},
+	{"name": "平儿 (管家)", "email": "pinger@example.com", "pass": "123456", "uid": "66666666-6666-6666-6666-666666666666"},
+	{"name": "袭人 (丫鬟)", "email": "xiren@example.com", "pass": "123456", "uid": "44444444-4444-4444-4444-444444444444"},
+	{"name": "晴雯 (丫鬟)", "email": "qingwen@example.com", "pass": "123456", "uid": "55555555-5555-5555-5555-555555555555"},
+	{"name": "贾母 (元老)", "email": "jiamu@example.com", "pass": "123456", "uid": "77777777-7777-7777-7777-777777777777"}
 ]
 
 func _ready() -> void:
 	error_label.hide()
 	loading_label.hide()
+	
+	# 检测是否为本地模式
+	_check_local_mode()
+	
 	SupabaseManager.auth_success.connect(_on_auth_success)
 	SupabaseManager.auth_error.connect(_on_auth_error)
 	_setup_quick_login_buttons()
+
+func _check_local_mode() -> void:
+	# 直接读取 GameConfig 的 USE_LOCAL_DB 变量
+	_is_local_mode = GameConfig.USE_LOCAL_DB
+	
+	if _is_local_mode:
+		print("[Login] 本地开发模式 - 使用固定 UID 映射测试账号")
 
 func _setup_quick_login_buttons() -> void:
 	for acc in test_accounts:
@@ -39,7 +52,20 @@ func _on_quick_account_pressed(acc: Dictionary) -> void:
 	print("[Login] Quick login started: email=%s, _is_signing_in=%s" % [acc["email"], _is_signing_in])
 	email_input.text = acc["email"]
 	password_input.text = acc["pass"]
-	SupabaseManager.sign_in(acc["email"], acc["pass"])
+	
+	if _is_local_mode:
+		# 本地模式：直接使用预设的 UID
+		_simulate_local_login(acc["uid"], acc["email"])
+	else:
+		SupabaseManager.sign_in(acc["email"], acc["pass"])
+
+# 本地模式模拟登录
+func _simulate_local_login(uid: String, email: String) -> void:
+	print("[Login] 本地模式模拟登录：uid=%s" % uid)
+	# 直接触发认证成功
+	SupabaseManager.access_token = "local-token"
+	SupabaseManager.current_uid = uid
+	_on_auth_success(uid)
 
 func _on_login_btn_pressed() -> void:
 	_is_signing_in = true
@@ -58,9 +84,16 @@ func _on_register_btn_pressed() -> void:
 func _on_auth_success(uid: String) -> void:
 	print("[Login] _on_auth_success: uid=%s" % uid)
 	_set_loading(false)
-	# 查询该 uid 是否已建立角色
-	var res = await SupabaseManager.db_get("/rest/v1/players?auth_uid=eq.%s&select=*" % uid)
-	_on_player_check(res)
+	
+	if _is_local_mode:
+		# 本地模式：使用固定 UID 映射查询玩家数据
+		print("[Login] 本地模式：使用预设 UID 查询玩家")
+		var res = await SupabaseManager.db_get("/rest/v1/players?id=eq.%s&select=*" % uid)
+		_on_player_check(res)
+	else:
+		# 云端模式：使用 auth_uid 查询
+		var res = await SupabaseManager.db_get("/rest/v1/players?auth_uid=eq.%s&select=*" % uid)
+		_on_player_check(res)
 
 func _on_player_check(response: Dictionary) -> void:
 	print("[Login] _on_player_check: response code=%s, data=%s" % [response.get("code", "N/A"), response.get("data", "N/A")])
@@ -135,13 +168,30 @@ func _auto_create_test_player() -> void:
 	])
 
 	if res["code"] == 201 or res["code"] == 200:
+		# 创建成功
 		var player_data = res["data"]
 		if player_data is Array:
 			player_data = player_data[0]
 		PlayerState.load_from_db(player_data)
 		print("[Login] Player created successfully: player_db_id=%s" % PlayerState.player_db_id)
 		get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+	
+	elif res["code"] == 409:
+		# 玩家已存在（冲突），查询并加载现有数据
+		print("[Login] Player already exists (409), loading existing player")
+		var query_res = await SupabaseManager.db_get("/players?auth_uid=eq.%s&select=*" % SupabaseManager.current_uid)
+		if query_res["code"] == 200 and query_res["data"] is Array and query_res["data"].size() > 0:
+			var player_data = query_res["data"][0]
+			PlayerState.load_from_db(player_data)
+			print("[Login] Loaded existing player: player_db_id=%s" % PlayerState.player_db_id)
+			get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+		else:
+			error_label.text = "角色已存在但无法加载：" + str(query_res.get("error", "Unknown"))
+			error_label.show()
+			_set_loading(false)
+	
 	else:
+		# 其他错误
 		error_label.text = "自动创建角色失败：" + str(res.get("error", "Unknown"))
 		error_label.show()
 		_set_loading(false)

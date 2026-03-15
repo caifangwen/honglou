@@ -45,23 +45,32 @@ func _ready() -> void:
 
 func _setup_signals():
 	# 导航按钮
-	$TopBar/BackBtn.pressed.connect(_on_BackBtn_pressed)
-	$TopBar/InboxBtn.pressed.connect(_on_InboxBtn_pressed)
-	
+	var back_btn = $TopBar/BackBtn
+	var inbox_btn = $TopBar/InboxBtn
+	if back_btn:
+		back_btn.pressed.connect(_on_BackBtn_pressed)
+	if inbox_btn:
+		inbox_btn.pressed.connect(_on_InboxBtn_pressed)
+
 	# 底部按钮
-	$BottomBar/ListenBtn.pressed.connect(_on_go_listening_pressed)
-	$BottomBar/MarketBtn.pressed.connect(_on_go_market_pressed)
-	
+	var listen_btn = $BottomBar/ListenBtn
+	var market_btn = $BottomBar/MarketBtn
+	if listen_btn:
+		listen_btn.pressed.connect(_on_go_listening_pressed)
+	if market_btn:
+		market_btn.pressed.connect(_on_go_market_pressed)
+
 	# 弹窗信号
-	if sell_popup.has_signal("confirmed"):
+	if sell_popup and sell_popup.has_signal("confirmed"):
 		sell_popup.confirmed.connect(_on_sell_confirmed)
-	
+
 	# 封锁按钮
 	if block_btn:
 		block_btn.pressed.connect(_on_block_btn_pressed)
-	
+
 	# 详情弹窗关闭时清空选择
-	detail_popup.canceled.connect(_on_detail_closed)
+	if detail_popup and detail_popup.has_signal("canceled"):
+		detail_popup.canceled.connect(_on_detail_closed)
 
 func _setup_filters():
 	# 类型筛选
@@ -119,11 +128,12 @@ func _setup_stamina_display():
 func refresh_bag() -> void:
 	for child in fragment_list.get_children():
 		child.queue_free()
-	
+
 	_current_fragments.clear()
 	_filtered_fragments.clear()
 
 	var now_iso = Time.get_datetime_string_from_system(false, true)
+	# 使用 SupabaseManager.db_get 会自动处理本地/云端模式（移除 /rest/v1/ 前缀）
 	var endpoint = "/rest/v1/intel_fragments?owner_uid=eq.%s&is_used=eq.false&is_sold=eq.false&expires_at=gt.%s&select=*" % [
 		PlayerState.uid, now_iso
 	]

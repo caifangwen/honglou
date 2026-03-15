@@ -1,0 +1,63 @@
+version: '3.8'
+
+# 本地开发环境 - PostgreSQL + pgREST（HTTP API）
+# 使用方法：
+# 1. 启动：docker-compose -f docker-compose.local-dev.yml up -d
+# 2. 访问 API：http://localhost:3000
+# 3. 查看文档：http://localhost:3000/
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15
+    container_name: honglou_local_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: honglou
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./local_db_data:/var/lib/postgresql/data
+      - ./combined_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pgREST - PostgreSQL REST API
+  pgrest:
+    image: postgrest/postgrest:latest
+    container_name: honglou_pgrest
+    restart: always
+    depends_on:
+      - postgres
+    ports:
+      - "3000:3000"
+    environment:
+      PGRST_DB_URI: "postgres://postgres:postgres123@postgres:5432/honglou"
+      PGRST_DB_SCHEMAS: "public"
+      PGRST_DB_ANON_ROLE: "anon"
+      PGRST_JWT_SECRET: "local-dev-secret-key-must-be-at-least-32-characters-long"
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: "local-dev-secret-key-must-be-at-least-32-characters-long"
+      PGRST_APP_SETTINGS_JWT_EXP: 3600
+
+  # pgAdmin - 数据库管理界面
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: honglou_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+volumes:
+  local_db_data:

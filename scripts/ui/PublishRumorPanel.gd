@@ -49,7 +49,9 @@ func _load_players():
 	var players = await SupabaseManager.query("players", {"current_game_id": PlayerState.current_game_id})
 	for p in players:
 		if p.id != PlayerState.player_db_id:
+			# 第二个参数必须是整数，使用 1 作为标记
 			target_selector.add_item(p.display_name, 1)
+			# 使用 set_item_metadata 存储实际的玩家 ID
 			target_selector.set_item_metadata(target_selector.get_item_count() - 1, p.id)
 
 func _load_intel_fragments():

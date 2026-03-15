@@ -47,6 +47,7 @@ func _load_initial_contacts() -> void:
 
 	print("[ComposePanel] Loading contacts for game_id: ", game_id, ", player_db_id: ", PlayerState.player_db_id)
 
+	# 使用 SupabaseManager.db_get 会自动处理本地/云端模式
 	var endpoint = "/rest/v1/players?current_game_id=eq.%s&id=neq.%s&select=id,display_name,character_name" % [game_id, PlayerState.player_db_id]
 	var res = await SupabaseManager.db_get(endpoint)
 

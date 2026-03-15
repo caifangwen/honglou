@@ -93,10 +93,12 @@ func _on_realtime_update(table_name: String, data: Dictionary):
 # ─────────────────────────────────────────
 
 func start_eavesdrop(player_uid: String, scene: String, duration_hours: int, partner_uid: String = "") -> bool:
-	# 1. 检查精力是否足够
-	var current_stamina = await StaminaManager.get_current_stamina(player_uid)
-	if current_stamina < COST_STAMINA:
-		push_warning("[Eavesdrop] 精力不足")
+	print("[Eavesdrop] start_eavesdrop called: player=%s, scene=%s, duration=%d" % [player_uid, scene, duration_hours])
+	print("[Eavesdrop] PlayerState.stamina=%d, COST_STAMINA=%d" % [PlayerState.stamina, COST_STAMINA])
+	
+	# 1. 检查精力是否足够（直接使用 PlayerState）
+	if PlayerState.stamina < COST_STAMINA:
+		push_warning("[Eavesdrop] 精力不足：%d < %d" % [PlayerState.stamina, COST_STAMINA])
 		return false
 
 	# 2. 检查该场景当前人数
@@ -106,6 +108,8 @@ func start_eavesdrop(player_uid: String, scene: String, duration_hours: int, par
 		success_rate_mod = 0.5 # 超过 5 人成功率下降 50%
 	elif listener_count >= 3:
 		success_rate_mod = 0.8 # 3-5 人下降 20%
+
+	print("[Eavesdrop] listener_count=%d, success_rate_mod=%f" % [listener_count, success_rate_mod])
 
 	# 3. 计算结束时间
 	var start_time = int(Time.get_unix_time_from_system())
@@ -126,24 +130,31 @@ func start_eavesdrop(player_uid: String, scene: String, duration_hours: int, par
 		"result_count": 0
 	}
 
+	print("[Eavesdrop] session_data=%s" % str(session_data))
+
 	# 5. 写入数据库
 	var res = await SupabaseManager.insert_into_table("eavesdrop_sessions", session_data)
+	print("[Eavesdrop] insert result: code=%d, data=%s" % [res.get("code", -1), str(res.get("data", "null"))])
+	
 	if res["code"] != 201:
 		push_error("[Eavesdrop] 开启监听失败：" + str(res["error"]))
 		return false
 
 	var session_id = res["data"][0]["id"]
-	
+	print("[Eavesdrop] session_id=%s" % session_id)
+
 	# 6. 扣除精力（使用 PlayerState 的 consume_stamina 方法）
 	if not PlayerState.consume_stamina(COST_STAMINA):
 		push_warning("[Eavesdrop] 本地精力扣除失败")
 		# 回滚会话
 		await SupabaseManager.db_update("eavesdrop_sessions", "id=eq." + session_id, {"status": "cancelled"})
 		return false
-	
+
+	print("[Eavesdrop] stamina consumed, new stamina=%d" % PlayerState.stamina)
+
 	# 7. 启动定时器
 	_start_session_timer(session_id, end_time)
-	
+
 	# 8. 触发信号
 	session_started.emit(session_id)
 

@@ -9,6 +9,7 @@ extends Control
 @onready var role_class_label: Label = $PlayerInfoPanel/VBox/RoleClassLabel
 @onready var silver_label: Label = $PlayerInfoPanel/VBox/SilverLabel
 @onready var qi_shu_label: Label = $PlayerInfoPanel/VBox/QiShuLabel
+@onready var stamina_label: Label = $PlayerInfoPanel/VBox/StaminaLabel
 
 func _ready() -> void:
 	_init_top_bar()
@@ -27,8 +28,10 @@ func _init_top_bar() -> void:
 func _init_player_info() -> void:
 	character_name_label.text = PlayerState.character_name
 	role_class_label.text = PlayerState.role_class
-	silver_label.text = str(PlayerState.silver)
-	qi_shu_label.text = str(PlayerState.qi_shu)
+	silver_label.text = "银两：%d" % PlayerState.silver
+	qi_shu_label.text = "气数：%d" % PlayerState.qi_shu
+	if is_instance_valid(stamina_label):
+		stamina_label.text = "精力：%d/%d" % [PlayerState.stamina, PlayerState.stamina_max]
 
 func _on_deficit_changed(new_value: float) -> void:
 	deficit_bar.value = new_value
@@ -43,8 +46,9 @@ func _on_qi_shu_changed(new_value: int) -> void:
 	qi_shu_label.text = str(new_value)
 
 func _on_stamina_changed(_new_value: int) -> void:
-	# 如果有精力条也可以在这里更新
-	pass
+	# 更新精力显示
+	if is_instance_valid(stamina_label):
+		stamina_label.text = "精力：%d/%d" % [PlayerState.stamina, PlayerState.stamina_max]
 
 # === 导航按钮回调 ===
 

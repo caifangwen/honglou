@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://eavesdrop_scene_001"]
+[gd_scene format=3 uid="uid://calb5jbht2l2a"]
 
-[ext_resource type="Script" path="res://scripts/ui/EavesdropScene.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://dmrfeif52ak50" path="res://scripts/ui/EavesdropScene.gd" id="1_script"]
 
-[node name="EavesdropScene" type="Control"]
+[node name="EavesdropScene" type="Control" unique_id=1974286604]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,15 +11,15 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="ErrorDialog" type="AcceptDialog" parent="."]
+[node name="ErrorDialog" type="AcceptDialog" parent="." unique_id=2093142222]
 title = "错误"
 size = Vector2i(400, 150)
 
-[node name="InfoDialog" type="AcceptDialog" parent="."]
+[node name="InfoDialog" type="AcceptDialog" parent="." unique_id=647537559]
 title = "提示"
 size = Vector2i(400, 150)
 
-[node name="BackButton" type="Button" parent="."]
+[node name="BackButton" type="Button" parent="." unique_id=1181838848]
 layout_mode = 0
 offset_left = 20.0
 offset_top = 20.0
@@ -27,7 +27,7 @@ offset_right = 100.0
 offset_bottom = 60.0
 text = "返回"
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1448438960]
 layout_mode = 1
 anchors_preset = 13
 anchor_left = 0.5
@@ -41,57 +41,55 @@ grow_vertical = 2
 theme_override_constants/separation = 15
 alignment = 1
 
-[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="VBoxContainer" unique_id=1455690082]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "选择监听场景"
 horizontal_alignment = 1
 
-[node name="StaminaLabel" type="Label" parent="VBoxContainer"]
+[node name="StaminaLabel" type="Label" parent="VBoxContainer" unique_id=1308703453]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "当前精力：8/8 | 消耗：2"
 horizontal_alignment = 1
 
-[node name="GridContainer" type="GridContainer" parent="VBoxContainer"]
+[node name="GridContainer" type="GridContainer" parent="VBoxContainer" unique_id=1200294860]
 layout_mode = 2
 theme_override_constants/h_separation = 15
 theme_override_constants/v_separation = 15
 columns = 3
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=184396296]
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 15
+alignment = 1
 
-[node name="DurationLabel" type="Label" parent="VBoxContainer/HBoxContainer"]
+[node name="DurationLabel" type="Label" parent="VBoxContainer/HBoxContainer" unique_id=807310484]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "挂机时长："
 
-[node name="SpinBox" type="SpinBox" parent="VBoxContainer/HBoxContainer"]
+[node name="SpinBox" type="SpinBox" parent="VBoxContainer/HBoxContainer" unique_id=44373138]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
 min_value = 1.0
 max_value = 8.0
 value = 1.0
-step = 1.0
 
-[node name="HourLabel" type="Label" parent="VBoxContainer/HBoxContainer"]
+[node name="HourLabel" type="Label" parent="VBoxContainer/HBoxContainer" unique_id=2066437109]
 layout_mode = 2
 text = "小时"
 
-[node name="RefreshBtn" type="Button" parent="VBoxContainer/HBoxContainer"]
+[node name="RefreshBtn" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=272326964]
 custom_minimum_size = Vector2(100, 40)
 layout_mode = 2
 text = "刷新"
 
-[node name="DuoPanel" type="Panel" parent="VBoxContainer"]
+[node name="DuoPanel" type="Panel" parent="VBoxContainer" unique_id=1943992409]
 visible = false
 custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 
-[node name="PartnerLabel" type="Label" parent="VBoxContainer/DuoPanel"]
+[node name="PartnerLabel" type="Label" parent="VBoxContainer/DuoPanel" unique_id=1585178655]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -101,7 +99,7 @@ theme_override_font_sizes/font_size = 20
 text = "搭档：某某某"
 horizontal_alignment = 1
 
-[node name="PartnerDesc" type="Label" parent="VBoxContainer/DuoPanel"]
+[node name="PartnerDesc" type="Label" parent="VBoxContainer/DuoPanel" unique_id=169313208]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -110,11 +108,12 @@ anchor_bottom = 1.0
 offset_top = -80.0
 offset_bottom = -10.0
 grow_horizontal = 2
+grow_vertical = 0
 text = "双人挂机可获得 +20% 触发率奖励和额外情报碎片"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="OptionButton" type="OptionButton" parent="VBoxContainer/DuoPanel"]
+[node name="OptionButton" type="OptionButton" parent="VBoxContainer/DuoPanel" unique_id=418961815]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -125,7 +124,7 @@ grow_horizontal = 2
 grow_vertical = 0
 alignment = 1
 
-[node name="StartBtn" type="Button" parent="VBoxContainer"]
+[node name="StartBtn" type="Button" parent="VBoxContainer" unique_id=898147178]
 custom_minimum_size = Vector2(250, 55)
 layout_mode = 2
 size_flags_horizontal = 4

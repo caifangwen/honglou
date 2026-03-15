@@ -10,3 +10,40 @@ supabase.exe
 
 # Supabase local temp/cache
 supabase/.temp/
+
+# Local database data (generated, do not commit)
+local_db_data/
+
+# Docker volumes (generated)
+*.volume/
+
+# Build outputs
+export/
+builds/
+*.exe
+*.pck
+*.x86_64
+*.app
+*.apk
+*.aab
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

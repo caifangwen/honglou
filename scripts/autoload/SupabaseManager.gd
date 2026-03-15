@@ -1,10 +1,13 @@
 extends Node
 
-# 本地缓存的 session 
-var access_token: String = "" 
-var refresh_token: String = "" 
-var current_uid: String = "" 
+# 本地缓存的 session
+var access_token: String = ""
+var refresh_token: String = ""
+var current_uid: String = ""
 var last_username: String = "" # 记录最近一次尝试登录/注册的用户名
+
+# 本地开发模式标志
+var _is_local_mode: bool = false
 
 # Realtime 相关
 var _ws: WebSocketPeer = WebSocketPeer.new()
@@ -14,14 +17,26 @@ var _subscriptions: Dictionary = {} # table_name -> ref
 var _heartbeat_timer: float = 0.0
 const HEARTBEAT_INTERVAL: float = 30.0
 
-signal auth_success(uid) 
-signal auth_error(message) 
-signal request_completed(endpoint, response_code, data) 
-signal request_failed(endpoint, error) 
+signal auth_success(uid)
+signal auth_error(message)
+signal request_completed(endpoint, response_code, data)
+signal request_failed(endpoint, error)
 signal realtime_update(table_name, data)
 
 func _ready():
+	# 检测是否为本地模式
+	_check_local_mode()
 	set_process(true)
+
+func _check_local_mode() -> void:
+	# 等待 GameConfig 初始化完成
+	await get_tree().process_frame
+	
+	# 直接读取 GameConfig 的 USE_LOCAL_DB 变量
+	if GameConfig.has_node("../GameConfig") or GameConfig.has_method("_init_environment"):
+		_is_local_mode = GameConfig.USE_LOCAL_DB
+	
+	print("[SupabaseManager] 本地模式：", _is_local_mode)
 
 func _process(delta):
 	if _is_ws_connected:
@@ -44,25 +59,43 @@ func _process(delta):
 			var reason = _ws.get_close_reason()
 			print("[Supabase Realtime] WebSocket closed: ", code, " - ", reason)
 
-# ───────────────────────────────────────── 
-# 认证：注册 
-# ───────────────────────────────────────── 
-func sign_up(email, password): 
+# ─────────────────────────────────────────
+# 认证：注册
+# ─────────────────────────────────────────
+func sign_up(email, password):
 	last_username = email.split("@")[0] # 默认用户名取邮箱前缀
-	var body = JSON.stringify({"email": email, "password": password}) 
-	_post(GameConfig.API_AUTH_SIGNUP, body, false) 
- 
-# ───────────────────────────────────────── 
-# 认证：登录 
-# ───────────────────────────────────────── 
-func sign_in(email, password): 
+	
+	if _is_local_mode:
+		# 本地模式：模拟注册成功，直接使用邮箱前缀作为 UID
+		_simulate_local_auth(email, password)
+		return
+	
+	var body = JSON.stringify({"email": email, "password": password})
+	_post(GameConfig.API_AUTH_SIGNUP, body, false)
+
+# ─────────────────────────────────────────
+# 认证：登录
+# ─────────────────────────────────────────
+func sign_in(email, password):
 	if last_username == "": last_username = email.split("@")[0]
-	var body = JSON.stringify({"email": email, "password": password}) 
-	_post(GameConfig.API_AUTH_LOGIN, body, false) 
+	
+	if _is_local_mode:
+		# 本地模式：模拟登录成功
+		_simulate_local_auth(email, password)
+		return
+	
+	var body = JSON.stringify({"email": email, "password": password})
+	_post(GameConfig.API_AUTH_LOGIN, body, false)
 
 # 用户名登录逻辑
 func sign_in_with_username(username, password):
 	last_username = username
+	
+	if _is_local_mode:
+		# 本地模式：直接使用用户名作为 UID
+		_simulate_local_auth(username + "@local", password)
+		return
+	
 	# 1. 调用 RPC 获取 email (无需 Auth，因为还没登录)
 	var res = await db_rpc("get_email_by_username", {"p_username": username}, false)
 	if res["code"] == 200 and res["data"] is String and res["data"] != "":
@@ -72,71 +105,138 @@ func sign_in_with_username(username, password):
 		var err = "找不到该用户或网络错误"
 		auth_error.emit(err)
 		push_error("[Supabase] Username login failed: " + err)
- 
-# ───────────────────────────────────────── 
-# 数据库：查询（GET） 
-# 用法：await db_get("/rest/v1/players?auth_uid=eq.xxx&select=*") 
-# ───────────────────────────────────────── 
-func db_get(endpoint): 
-	var http = HTTPRequest.new() 
-	add_child(http) 
- 
-	var headers = _build_headers(true) 
-	var url = GameConfig.SUPABASE_URL + endpoint
-	http.request(url, headers, HTTPClient.METHOD_GET) 
+
+# ─────────────────────────────────────────
+# 本地模式：模拟认证（用于开发测试）
+# ─────────────────────────────────────────
+func _simulate_local_auth(email: String, password: String) -> void:
+	# 本地模式使用简化的 UID 生成逻辑
+	# 格式：{username_hash}-0000-0000-0000-000000000000
+	var username = email.split("@")[0]
+	var hash = hash_string(username)
+	var simulated_uid = "%08x-0000-0000-0000-000000000000" % hash
 	
+	# 模拟 token
+	access_token = "local-token-" + username
+	refresh_token = "local-refresh-" + username
+	current_uid = simulated_uid
+	
+	print("[SupabaseManager] 本地登录模拟：email=%s, uid=%s" % [email, simulated_uid])
+	
+	# 触发认证成功信号
+	auth_success.emit(simulated_uid)
+
+# 简单的字符串哈希函数
+func hash_string(s: String) -> int:
+	var hash = 5381
+	for c in s:
+		hash = ((hash << 5) + hash) + c.unicode_at(0)
+		hash = hash & 0x7FFFFFFF  # 保持为正整数
+	return hash
+ 
+# ─────────────────────────────────────────
+# 数据库：查询（GET）
+# 用法：await db_get("/rest/v1/players?auth_uid=eq.xxx&select=*")
+# ─────────────────────────────────────────
+func db_get(endpoint):
+	var http = HTTPRequest.new()
+	add_child(http)
+
+	var headers = _build_headers(true)
+
+	# 本地模式使用本地 API 地址（需要移除 /rest/v1/ 前缀）
+	var url: String
+	if _is_local_mode:
+		# 如果 endpoint 已经是完整 URL，直接使用
+		if endpoint.begins_with("http"):
+			url = endpoint
+		else:
+			# 本地模式：移除 /rest/v1/ 前缀
+			var clean_endpoint = endpoint.replace("/rest/v1/", "/")
+			url = GameConfig.LOCAL_API_BASE + clean_endpoint
+	else:
+		# 云端模式
+		if endpoint.begins_with("http"):
+			url = endpoint
+		else:
+			url = GameConfig.SUPABASE_URL + endpoint
+
+	http.request(url, headers, HTTPClient.METHOD_GET)
+
 	var res = await http.request_completed
 	return _on_request_completed_async(res[0], res[1], res[2], res[3], http, endpoint)
 
-# ───────────────────────────────────────── 
-# 数据库：插入（POST） 
-# ───────────────────────────────────────── 
-func db_insert(table, data): 
-	var body = JSON.stringify(data) 
-	return await _post("/rest/v1/" + table, body, true) 
- 
-# ───────────────────────────────────────── 
-# 数据库：更新（PATCH） 
-# 用法：db_update("players", "id=eq.xxx", {"stamina": 5}) 
-# ───────────────────────────────────────── 
-func db_update(table, filter, data): 
-	var body = JSON.stringify(data) 
-	return await _patch("/rest/v1/" + table + "?" + filter, body) 
+# ─────────────────────────────────────────
+# 数据库：插入（POST）
+# ─────────────────────────────────────────
+func db_insert(table, data):
+	var body = JSON.stringify(data)
+	if _is_local_mode:
+		# 本地模式：使用 pgREST（无 /rest/v1/ 前缀）
+		return await _post(GameConfig.LOCAL_API_BASE + "/" + table, body, false)
+	else:
+		# 云端模式：使用相对路径
+		return await _post("/rest/v1/" + table, body, true)
 
-# ───────────────────────────────────────── 
-# 数据库：删除（DELETE） 
-# 用法：db_delete("players", "id=eq.xxx") 
-# ───────────────────────────────────────── 
-func db_delete(table, filter): 
-	return await _delete("/rest/v1/" + table + "?" + filter) 
+# ─────────────────────────────────────────
+# 数据库：更新（PATCH）
+# 用法：db_update("players", "id=eq.xxx", {"stamina": 5})
+# ─────────────────────────────────────────
+func db_update(table, filter, data):
+	var body = JSON.stringify(data)
+	if _is_local_mode:
+		return await _patch(GameConfig.LOCAL_API_BASE + "/" + table + "?" + filter, body)
+	else:
+		return await _patch("/rest/v1/" + table + "?" + filter, body)
 
-# ───────────────────────────────────────── 
-# 数据库：RPC（POST to /rpc/） 
-# ───────────────────────────────────────── 
+# ─────────────────────────────────────────
+# 数据库：删除（DELETE）
+# 用法：db_delete("players", "id=eq.xxx")
+# ─────────────────────────────────────────
+func db_delete(table, filter):
+	if _is_local_mode:
+		return await _delete(GameConfig.LOCAL_API_BASE + "/" + table + "?" + filter)
+	else:
+		return await _delete("/rest/v1/" + table + "?" + filter)
+
+# ─────────────────────────────────────────
+# 数据库：RPC（POST to /rpc/）
+# ─────────────────────────────────────────
 func db_rpc(function_name: String, params: Dictionary = {}, with_auth: bool = true):
 	var body = JSON.stringify(params)
-	return await _post("/rest/v1/rpc/" + function_name, body, with_auth)
+	if _is_local_mode:
+		return await _post(GameConfig.LOCAL_API_BASE + "/rpc/" + function_name, body, false)
+	else:
+		return await _post("/rest/v1/rpc/" + function_name, body, with_auth)
  
-# ───────────────────────────────────────── 
-# 内部：构建请求头 
-# ───────────────────────────────────────── 
-func _build_headers(with_auth): 
-	var headers = PackedStringArray([ 
-		"Content-Type: application/json", 
-		"apikey: " + GameConfig.SUPABASE_ANON_KEY, 
-		"Prefer: return=representation"   # 插入/更新后返回结果 
-	]) 
-	if with_auth and access_token != "": 
-		headers.append("Authorization: Bearer " + access_token) 
-	return headers 
- 
-func _post(endpoint_or_url, body, with_auth): 
-	var http = HTTPRequest.new() 
-	add_child(http) 
-	var headers = _build_headers(with_auth) 
-	var url = endpoint_or_url if endpoint_or_url.begins_with("http") else GameConfig.SUPABASE_URL + endpoint_or_url 
-	http.request(url, headers, HTTPClient.METHOD_POST, body) 
+# ─────────────────────────────────────────
+# 内部：构建请求头
+# ─────────────────────────────────────────
+func _build_headers(with_auth):
+	var headers = PackedStringArray([
+		"Content-Type: application/json",
+		"apikey: " + GameConfig.SUPABASE_ANON_KEY,
+		"Prefer: return=representation"   # 插入/更新后返回结果
+	])
 	
+	# 本地模式不使用 JWT 认证
+	if _is_local_mode:
+		# 本地模式：使用 Prefer 头跳过认证检查
+		headers.append("Prefer: return=representation,merge-duplicates")
+	else:
+		# 云端模式：使用 JWT token
+		if with_auth and access_token != "":
+			headers.append("Authorization: Bearer " + access_token)
+	
+	return headers
+ 
+func _post(endpoint_or_url, body, with_auth):
+	var http = HTTPRequest.new()
+	add_child(http)
+	var headers = _build_headers(with_auth)
+	var url = endpoint_or_url if endpoint_or_url.begins_with("http") else GameConfig.SUPABASE_URL + endpoint_or_url
+	http.request(url, headers, HTTPClient.METHOD_POST, body)
+
 	var res = await http.request_completed
 	return _on_request_completed_async(res[0], res[1], res[2], res[3], http, endpoint_or_url)
 
