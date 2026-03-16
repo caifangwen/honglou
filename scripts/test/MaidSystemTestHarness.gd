@@ -73,7 +73,7 @@ func test_intel_generation() -> void:
 	await EavesdropManager.generate_intel_fragment(session_id, true)
 	
 	# 4. 断言：查询是否有新碎片
-	var frag_res = await SupabaseManager.db_get("/rest/v1/intel_fragments?player_uid=eq.%s&intel_type=eq.account_leak&select=*" % maid_a_uid)
+	var frag_res = await SupabaseManager.db_get("/rest/v1/intel_fragments?owner_uid=eq.%s&intel_type=eq.account_leak&select=*" % maid_a_uid)
 	
 	if frag_res["code"] == 200 and not frag_res["data"].is_empty():
 		log_test("断言成功：maid_a 获得 account_leak 类型情报。")
@@ -220,8 +220,8 @@ func test_partnership_monitoring() -> void:
 	await EavesdropManager.generate_intel_fragment(session_id, true)
 	
 	# 4. 验证情报翻倍
-	var frag_a = await SupabaseManager.db_get("/rest/v1/intel_fragments?player_uid=eq.%s&session_id=eq.%s&select=*" % [maid_a_uid, session_id])
-	var frag_b = await SupabaseManager.db_get("/rest/v1/intel_fragments?player_uid=eq.%s&session_id=eq.%s&select=*" % [maid_b_uid, session_id])
+	var frag_a = await SupabaseManager.db_get("/rest/v1/intel_fragments?owner_uid=eq.%s&session_id=eq.%s&select=*" % [maid_a_uid, session_id])
+	var frag_b = await SupabaseManager.db_get("/rest/v1/intel_fragments?owner_uid=eq.%s&session_id=eq.%s&select=*" % [maid_b_uid, session_id])
 	
 	if not frag_a["data"].is_empty() and not frag_b["data"].is_empty():
 		log_test("断言成功：双人挂机情报翻倍生成。")

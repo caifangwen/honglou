@@ -99,7 +99,7 @@ func betray_partner(relationship_id: String, betrayer_uid: String) -> void:
                 var original_intel = intel_res["data"][0]
                 var copy_intel = original_intel.duplicate()
                 copy_intel.erase("id") # 移除旧 ID 让 Supabase 生成新 ID
-                copy_intel["player_uid"] = partner_uid
+                copy_intel["owner_uid"] = partner_uid
                 copy_intel["is_copy"] = true
                 await SupabaseManager.db_insert("intel_fragments", copy_intel)
                 

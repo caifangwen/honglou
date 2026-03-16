@@ -40,20 +40,24 @@ func _load_active_sessions():
 	# 清空现有项
 	for child in active_sessions_container.get_children():
 		child.queue_free()
-	
+
 	_active_sessions.clear()
-	
+
 	# 加载活跃会话
-	var res = await EavesdropManager.get_active_sessions()
-	_active_sessions = res
-	
+	var sessions = await EavesdropManager.get_active_sessions()
+	if sessions is Array:
+		_active_sessions = sessions
+	else:
+		print("[EavesdropHub] get_active_sessions returned non-Array: ", typeof(sessions))
+		_active_sessions = []
+
 	# 更新统计
 	_update_stats()
-	
+
 	if _active_sessions.is_empty():
 		_show_no_sessions_hint()
 		return
-	
+
 	# 创建会话项
 	for session in _active_sessions:
 		var item = SESSION_ITEM_SCENE.instantiate()

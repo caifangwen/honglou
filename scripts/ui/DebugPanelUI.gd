@@ -616,7 +616,7 @@ func _on_debug_generate_intel():
 	_log("情报生成指令已发送", "ACTION")
 
 func _on_debug_fetch_intel():
-	var res = await SupabaseManager.db_get("/rest/v1/intel_fragments?player_uid=eq.%s&order=created_at.desc&limit=5" % PlayerState.uid)
+	var res = await SupabaseManager.db_get("/rest/v1/intel_fragments?owner_uid=eq.%s&order=created_at.desc&limit=5" % PlayerState.uid)
 	if res["code"] == 200:
 		_log("--- 最近 5 条情报 ---", "SYSTEM")
 		for frag in res["data"]:
