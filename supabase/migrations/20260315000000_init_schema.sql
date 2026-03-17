@@ -176,11 +176,13 @@ CREATE TABLE IF NOT EXISTS public.steward_accounts (
 CREATE TABLE IF NOT EXISTS public.ledger_entries (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     game_id uuid NOT NULL REFERENCES public.games(id),
+    treasury_id uuid REFERENCES public.treasury(game_id),
     actor_id uuid NOT NULL REFERENCES public.players(id),
     target_id uuid REFERENCES public.players(id),
-    action_type action_type NOT NULL,
+    ledger_type text DEFAULT 'public' CHECK (ledger_type IN ('public', 'private')),
+    entry_type text DEFAULT 'allocation' CHECK (entry_type IN ('allocation', 'procurement', 'advance', 'other')),
     amount int DEFAULT 0,
-    approval_status approval_status DEFAULT 'pending',
+    note text,
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now()
 );

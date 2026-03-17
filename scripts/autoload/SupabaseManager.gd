@@ -31,11 +31,10 @@ func _ready():
 func _check_local_mode() -> void:
 	# 等待 GameConfig 初始化完成
 	await get_tree().process_frame
-	
+
 	# 直接读取 GameConfig 的 USE_LOCAL_DB 变量
-	if GameConfig.has_node("../GameConfig") or GameConfig.has_method("_init_environment"):
-		_is_local_mode = GameConfig.USE_LOCAL_DB
-	
+	_is_local_mode = GameConfig.USE_LOCAL_DB
+
 	print("[SupabaseManager] 本地模式：", _is_local_mode)
 
 func _process(delta):
