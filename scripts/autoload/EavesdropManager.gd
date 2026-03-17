@@ -95,26 +95,39 @@ func _on_realtime_update(table_name: String, data: Dictionary):
 
 func start_eavesdrop(player_uid: String, scene: String, duration_hours: int, partner_uid: String = "") -> bool:
 	# 1. 检查精力是否足够
-	if PlayerState.stamina < COST_STAMINA:
-		push_warning("[Eavesdrop] 精力不足：%d < %d" % [PlayerState.stamina, COST_STAMINA])
+	var current_stamina = PlayerState.get_current_stamina()
+	print("[Eavesdrop] 开始检查精力：当前=%d, 需要=%d" % [current_stamina, COST_STAMINA])
+	
+	if current_stamina < COST_STAMINA:
+		push_warning("[Eavesdrop] 精力不足：%d < %d" % [current_stamina, COST_STAMINA])
 		return false
+	
+	print("[Eavesdrop] 精力检查通过")
 
 	# 2. 检查当前游戏 ID 是否有效
 	if not GameState.current_game_id or GameState.current_game_id == "":
 		push_error("[Eavesdrop] current_game_id is empty!")
 		return false
+	
+	print("[Eavesdrop] current_game_id: ", GameState.current_game_id)
 
 	# 3. 检查该场景当前人数
 	var listener_count = await get_scene_listener_count(GameState.current_game_id, scene)
 	var success_rate_mod = 1.0
 	if listener_count >= 5:
 		success_rate_mod = 0.5
+		print("[Eavesdrop] 场景拥挤，成功率降低到 50%%")
 	elif listener_count >= 3:
 		success_rate_mod = 0.8
+		print("[Eavesdrop] 场景较忙，成功率降低到 80%%")
+	
+	print("[Eavesdrop] 场景人数：%d, 成功率修正：%.1f%%" % [listener_count, success_rate_mod * 100])
 
 	# 4. 计算结束时间
 	var start_time = int(Time.get_unix_time_from_system())
 	var end_time = start_time + (duration_hours * 3600)
+	
+	print("[Eavesdrop] 挂机时长：%d 小时，结束时间：%s" % [duration_hours, Time.get_datetime_string_from_unix_time(end_time)])
 
 	# 5. 构建会话数据
 	var session_data = {
@@ -130,24 +143,35 @@ func start_eavesdrop(player_uid: String, scene: String, duration_hours: int, par
 		"is_duo": partner_uid != "",
 		"result_count": 0
 	}
+	
+	print("[Eavesdrop] 会话数据：", session_data)
 
 	# 6. 写入数据库
+	print("[Eavesdrop] 插入会话到数据库...")
 	var res = await SupabaseManager.insert_into_table("eavesdrop_sessions", session_data)
+	
+	print("[Eavesdrop] 数据库返回：code=%d, data=%s" % [res.get("code", -1), str(res.get("data", "null"))])
 
 	if res["code"] != 201:
 		push_error("[Eavesdrop] 开启监听失败：" + str(res.get("error", "unknown error")))
 		return false
 
 	var session_id = res["data"][0]["id"]
+	print("[Eavesdrop] 会话创建成功，ID: %s" % session_id)
 
 	# 7. 扣除精力
+	print("[Eavesdrop] 扣除精力 %d 点..." % COST_STAMINA)
 	if not PlayerState.consume_stamina(COST_STAMINA):
 		push_warning("[Eavesdrop] 本地精力扣除失败")
 		await SupabaseManager.db_update("eavesdrop_sessions", "id=eq." + session_id, {"status": "cancelled"})
 		return false
+	
+	print("[Eavesdrop] 精力扣除成功，当前精力：%d" % PlayerState.stamina)
 
 	# 8. 启动定时器
 	_start_session_timer(session_id, end_time)
+	
+	print("[Eavesdrop] 挂机会话启动成功！")
 
 	# 9. 触发信号
 	session_started.emit(session_id)

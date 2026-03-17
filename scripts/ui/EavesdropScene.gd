@@ -14,9 +14,11 @@ signal eavesdrop_started(success: bool)
 @onready var back_btn = $TopBar/BackButton
 @onready var stamina_label = $TopBar/StaminaLabel
 @onready var refresh_btn = $TopBar/RefreshBtn
+@onready var debug_stamina_btn = $TopBar/DebugStaminaBtn
 
 @onready var error_dialog = $ErrorDialog
 @onready var info_dialog = $InfoDialog
+@onready var debug_dialog = $DebugDialog
 
 var selected_scene = ""
 var selected_scene_btn: Button = null
@@ -53,7 +55,7 @@ func _setup_static_ui():
 	print("[EavesdropScene] partner_label: ", partner_label)
 	print("[EavesdropScene] partner_scene_option: ", partner_scene_option)
 	print("[EavesdropScene] duo_hint_label: ", duo_hint_label)
-	
+
 	# 初始化返回按钮
 	if is_instance_valid(back_btn):
 		back_btn.pressed.connect(_on_back_btn_pressed)
@@ -65,6 +67,12 @@ func _setup_static_ui():
 		refresh_btn.pressed.connect(_on_refresh_btn_pressed)
 	else:
 		printerr("[EavesdropScene] refresh_btn not found!")
+
+	# 初始化调试精力按钮
+	if is_instance_valid(debug_stamina_btn):
+		debug_stamina_btn.pressed.connect(_on_debug_stamina_pressed)
+	else:
+		printerr("[EavesdropScene] debug_stamina_btn not found!")
 
 	# 初始化时长选择
 	if is_instance_valid(duration_spin):
@@ -87,7 +95,7 @@ func _setup_static_ui():
 		print("[EavesdropScene] duo_panel initialized and hidden")
 	else:
 		printerr("[EavesdropScene] duo_panel not found!")
-	
+
 	# 初始化搭档提示
 	if is_instance_valid(duo_hint_label):
 		duo_hint_label.show()
@@ -307,9 +315,15 @@ func _on_duration_changed(_value):
 func _update_stamina_display_async():
 	var cost = EavesdropManager.COST_STAMINA
 	# 直接使用 PlayerState 的精力值，而不是查询数据库
-	var current = PlayerState.stamina
-	# 简化显示，避免文字过长
-	stamina_label.text = "精力：%d/%d  消耗：%d" % [current, PlayerState.stamina_max, cost]
+	var current = PlayerState.get_current_stamina()
+	var max_val = PlayerState.stamina_max
+	# 详细显示精力信息
+	stamina_label.text = "精力：%d/%d  消耗：%d  最后刷新：%d 秒前" % [
+		current, 
+		max_val, 
+		cost,
+		int(Time.get_unix_time_from_system()) - PlayerState.last_stamina_refresh
+	]
 
 	if current < cost:
 		stamina_label.add_theme_color_override("font_color", Color.RED)
@@ -321,6 +335,57 @@ func _update_stamina_display_async():
 		if is_instance_valid(start_btn):
 			start_btn.disabled = false
 			start_btn.text = "开始挂机"
+
+func _on_debug_stamina_pressed():
+	print("[EavesdropScene] _on_debug_stamina_pressed called")
+	
+	# 显示当前精力状态
+	var current = PlayerState.get_current_stamina()
+	var max_val = PlayerState.stamina_max
+	var last_refresh = int(Time.get_unix_time_from_system()) - PlayerState.last_stamina_refresh
+	
+	var debug_info = """
+=== 精力状态调试信息 ===
+
+当前精力： %d / %d
+挂机消耗： %d
+最后刷新： %d 秒前 (%.1f 分钟前)
+预计恢复： %.1f 小时后恢复 1 点
+
+操作：点击确定按钮增加 3 点精力
+""" % [
+		current, 
+		max_val, 
+		EavesdropManager.COST_STAMINA,
+		last_refresh,
+		last_refresh / 60.0,
+		(GameConfig.STAMINA_RECOVERY_SEC - last_refresh) / 3600.0
+	]
+	
+	if debug_dialog:
+		debug_dialog.dialog_text = debug_info
+		debug_dialog.title = "精力调试 - 当前：%d/%d" % [current, max_val]
+		debug_dialog.popup_centered()
+		
+		# 连接 confirmed 信号（一次性）
+		debug_dialog.confirmed.connect(_on_debug_stamina_confirm, CONNECT_ONE_SHOT)
+	else:
+		# 如果没有对话框，直接增加精力
+		_add_debug_stamina()
+
+func _on_debug_stamina_confirm():
+	_add_debug_stamina()
+
+func _add_debug_stamina():
+	PlayerState.stamina = min(PlayerState.stamina + 3, PlayerState.stamina_max)
+	PlayerState.last_stamina_refresh = int(Time.get_unix_time_from_system())
+	
+	print("[EavesdropScene] 调试：精力已设置为 %d/%d" % [PlayerState.stamina, PlayerState.stamina_max])
+	
+	# 更新显示
+	_update_stamina_display_async()
+	
+	_show_info("精力已补充 3 点，当前：%d/%d" % [PlayerState.stamina, PlayerState.stamina_max])
 
 func _on_start_pressed():
 	print("[EavesdropScene] _on_start_pressed called")

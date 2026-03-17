@@ -19,6 +19,10 @@ size = Vector2i(400, 150)
 title = "提示"
 size = Vector2i(400, 150)
 
+[node name="DebugDialog" type="AcceptDialog" parent="." unique_id=837264510]
+title = "精力调试"
+size = Vector2i(450, 200)
+
 [node name="TopBar" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 10
@@ -42,6 +46,11 @@ horizontal_alignment = 0
 custom_minimum_size = Vector2(100, 40)
 layout_mode = 2
 text = "刷新"
+
+[node name="DebugStaminaBtn" type="Button" parent="TopBar"]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+text = "调试：精力 +3"
 
 [node name="MainContainer" type="VBoxContainer" parent="."]
 layout_mode = 1

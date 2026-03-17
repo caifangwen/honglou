@@ -17,11 +17,13 @@ const SESSION_ITEM_SCENE = preload("res://scenes/components/EavesdropSessionItem
 
 var _active_sessions: Array = []
 var _refresh_timer: Timer
+var _debug_timer: Timer
 
 func _ready():
 	print("[EavesdropHub] _ready called")
 	_setup_ui()
 	_setup_timers()
+	_setup_debug_timer()
 	await _load_active_sessions()
 
 func _setup_ui():
@@ -44,6 +46,23 @@ func _setup_timers():
 	_refresh_timer.timeout.connect(_update_session_timers)
 	_refresh_timer.autostart = true
 	add_child(_refresh_timer)
+
+func _setup_debug_timer():
+	# 创建调试定时器，每 10 秒打印一次精力状态
+	_debug_timer = Timer.new()
+	_debug_timer.wait_time = 10.0
+	_debug_timer.timeout.connect(_print_stamina_debug_info)
+	_debug_timer.autostart = true
+	add_child(_debug_timer)
+	print("[EavesdropHub] 精力调试定时器已启动")
+
+func _print_stamina_debug_info():
+	var current = PlayerState.get_current_stamina()
+	var max_val = PlayerState.stamina_max
+	var elapsed = int(Time.get_unix_time_from_system()) - PlayerState.last_stamina_refresh
+	print("[EavesdropHub] 【精力调试】当前：%d/%d, 最后刷新：%d 秒前，自动恢复：%.1f 小时后" % [
+		current, max_val, elapsed, (GameConfig.STAMINA_RECOVERY_SEC - elapsed) / 3600.0
+	])
 
 func _load_active_sessions():
 	print("[EavesdropHub] _load_active_sessions called")
