@@ -1,0 +1,246 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://features/eavesdrop/IntelBag.gd" id="1_bag"]
+
+[node name="IntelBag" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_bag")
+
+[node name="TopBar" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+theme_override_constants/separation = 20
+alignment = 0
+
+[node name="BackBtn" type="Button" parent="TopBar"]
+layout_mode = 2
+text = " 返回 "
+
+[node name="Spacer1" type="Control" parent="TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StaminaLabel" type="Label" parent="TopBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "精力：8/8"
+
+[node name="QiShuLabel" type="Label" parent="TopBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "气数：100"
+
+[node name="Spacer2" type="Control" parent="TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InboxBtn" type="Button" parent="TopBar"]
+layout_mode = 2
+text = " 门房信箱 "
+
+[node name="Middle" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 70.0
+offset_bottom = -80.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="FilterBar" type="HBoxContainer" parent="Middle"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -380.0
+offset_right = 380.0
+offset_bottom = 40.0
+grow_horizontal = 2
+theme_override_constants/separation = 10
+
+[node name="TypeLabel" type="Label" parent="Middle/FilterBar"]
+layout_mode = 2
+text = "类型:"
+
+[node name="TypeOption" type="OptionButton" parent="Middle/FilterBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SceneLabel" type="Label" parent="Middle/FilterBar"]
+layout_mode = 2
+text = "场景:"
+
+[node name="SceneOption" type="OptionButton" parent="Middle/FilterBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ValueLabel" type="Label" parent="Middle/FilterBar"]
+layout_mode = 2
+text = "价值:"
+
+[node name="ValueOption" type="OptionButton" parent="Middle/FilterBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SortLabel" type="Label" parent="Middle/FilterBar"]
+layout_mode = 2
+text = "排序:"
+
+[node name="SortOption" type="OptionButton" parent="Middle/FilterBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ClearFilterBtn" type="Button" parent="Middle/FilterBar"]
+layout_mode = 2
+text = "清除筛选"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Middle"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 50.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="FragmentList" type="VBoxContainer" parent="Middle/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="BottomBar" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="ListenBtn" type="Button" parent="BottomBar"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+text = "前往挂机监听"
+
+[node name="MarketBtn" type="Button" parent="BottomBar"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+text = "前往蜂腰桥集市"
+
+[node name="DetailPopup" type="AcceptDialog" parent="."]
+title = "情报详情"
+size = Vector2i(450, 350)
+unresizable = true
+
+[node name="VBox" type="VBoxContainer" parent="DetailPopup"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 442.0
+offset_bottom = 301.0
+theme_override_constants/separation = 10
+
+[node name="ContentLabel" type="Label" parent="DetailPopup/VBox"]
+layout_mode = 2
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 16
+
+[node name="TypeLabel" type="Label" parent="DetailPopup/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.7, 1, 1)
+text = "类型："
+
+[node name="ValueLabel" type="Label" parent="DetailPopup/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84, 0, 1)
+text = "价值："
+
+[node name="TargetLabel" type="Label" parent="DetailPopup/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.7, 1, 1)
+text = "指向目标："
+
+[node name="BlockBtn" type="Button" parent="DetailPopup/VBox"]
+layout_mode = 2
+text = "封锁 12 小时"
+
+[node name="SellPopup" type="ConfirmationDialog" parent="."]
+title = "出售情报"
+size = Vector2i(450, 350)
+unresizable = true
+
+[node name="VBox" type="VBoxContainer" parent="SellPopup"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 442.0
+offset_bottom = 301.0
+theme_override_constants/separation = 15
+
+[node name="Title" type="Label" parent="SellPopup/VBox"]
+layout_mode = 2
+text = "设置交易条款"
+horizontal_alignment = 1
+
+[node name="PriceGrid" type="GridContainer" parent="SellPopup/VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 10
+columns = 2
+
+[node name="SilverLabel" type="Label" parent="SellPopup/VBox/PriceGrid"]
+layout_mode = 2
+text = "银两价格:"
+
+[node name="SilverInput" type="SpinBox" parent="SellPopup/VBox/PriceGrid"]
+layout_mode = 2
+max_value = 10000.0
+
+[node name="QiLabel" type="Label" parent="SellPopup/VBox/PriceGrid"]
+layout_mode = 2
+text = "气数价格:"
+
+[node name="QiInput" type="SpinBox" parent="SellPopup/VBox/PriceGrid"]
+layout_mode = 2
+max_value = 200.0
+
+[node name="BuyerLabel" type="Label" parent="SellPopup/VBox"]
+layout_mode = 2
+text = "选择买家:"
+
+[node name="BuyerList" type="OptionButton" parent="SellPopup/VBox"]
+layout_mode = 2
+
+[node name="ToastLabel" type="Label" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -20.0
+offset_right = 150.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 24
+text = "提示信息"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[connection signal="pressed" from="BottomBar/ListenBtn" to="." method="_on_go_listening_pressed"]
+[connection signal="pressed" from="BottomBar/MarketBtn" to="." method="_on_go_market_pressed"]

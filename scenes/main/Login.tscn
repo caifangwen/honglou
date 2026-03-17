@@ -1,0 +1,97 @@
+[gd_scene load_steps=2 format=3 uid="uid://bmdtcpmygb3it"]
+
+[ext_resource type="Script" path="res://scenes/main/Login.gd" id="1_1"]
+
+[node name="Login" type="Control"]
+mouse_filter = 2
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_1")
+
+[node name="Background" type="ColorRect" parent="."]
+mouse_filter = 1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.239216, 0.0470588, 0.0470588, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LoginPanel" type="VBoxContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/LoginPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "大观园"
+horizontal_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="CenterContainer/LoginPanel"]
+layout_mode = 2
+text = "百人异步竞技"
+horizontal_alignment = 1
+
+[node name="SeparatorA" type="HSeparator" parent="CenterContainer/LoginPanel"]
+layout_mode = 2
+
+[node name="EmailInput" type="LineEdit" parent="CenterContainer/LoginPanel"]
+layout_mode = 2
+placeholder_text = "邮箱"
+
+[node name="PasswordInput" type="LineEdit" parent="CenterContainer/LoginPanel"]
+layout_mode = 2
+placeholder_text = "密码"
+secret = true
+
+[node name="ErrorLabel" type="Label" parent="CenterContainer/LoginPanel"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.2, 0.2, 1)
+text = "错误提示"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="LoginBtn" type="Button" parent="CenterContainer/LoginPanel"]
+layout_mode = 2
+mouse_filter = 2
+text = "登 录"
+
+[node name="RegisterBtn" type="Button" parent="CenterContainer/LoginPanel"]
+layout_mode = 2
+mouse_filter = 2
+text = "注册新账号"
+
+[node name="QuickLoginLabel" type="Label" parent="CenterContainer/LoginPanel"]
+layout_mode = 2
+text = "快捷登录测试账号"
+horizontal_alignment = 1
+
+[node name="QuickLoginGrid" type="GridContainer" parent="CenterContainer/LoginPanel"]
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+
+[node name="LoadingLabel" type="Label" parent="CenterContainer/LoginPanel"]
+visible = false
+layout_mode = 2
+text = "请稍候…"
+horizontal_alignment = 1
+
+[connection signal="pressed" from="CenterContainer/LoginPanel/LoginBtn" to="." method="_on_login_btn_pressed"]
+[connection signal="pressed" from="CenterContainer/LoginPanel/RegisterBtn" to="." method="_on_register_btn_pressed"]

@@ -10,28 +10,27 @@ config_version=5
 
 [application]
 
-config/name="红楼回忆志"
-run/main_scene="res://scenes/Main.tscn"
+config/name="Honglou Yihui Zhi"
+run/main_scene="res://scenes/main/Main.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon.svg"
 
 [autoload]
 
-DebugTimePanel="*res://debug/DebugTimePanel.tscn"
-GameTime="*res://autoload/GameTime.gd"
-GameConfig="*res://scripts/data/GameConfig.gd"
-GameState="*res://scripts/autoload/GameState.gd"
-PlayerState="*res://scripts/autoload/PlayerState.gd"
-FirebaseManager="*res://scripts/autoload/FirebaseManager.gd"
-EventBus="*res://scripts/autoload/EventBus.gd"
-SupabaseManager="*res://scripts/autoload/SupabaseManager.gd"
-MockDatabase="*res://scripts/autoload/MockDatabase.gd"
-StaminaManager="*res://scripts/autoload/StaminaManager.gd"
-EavesdropManager="*res://scripts/autoload/EavesdropManager.gd"
-RelationshipManager="*res://scripts/autoload/RelationshipManager.gd"
-MaidProgressionChecker="*res://scripts/autoload/MaidProgressionChecker.gd"
-InboxManager="*res://scripts/inbox/InboxManager.gd"
-PowerInfluence="*res://scripts/systems/PowerInfluence.gd"
+DebugTimePanel="*res://scenes/debug/DebugTimePanel.tscn"
+GameTime="*res://core/GameTime.gd"
+GameConfig="*res://core/GameConfig.gd"
+GameState="*res://core/GameState.gd"
+PlayerState="*res://core/PlayerState.gd"
+EventBus="*res://core/EventBus.gd"
+StaminaManager="*res://core/StaminaManager.gd"
+SupabaseManager="*res://services/supabase/SupabaseManager.gd"
+MockDatabase="*res://services/supabase/MockDatabase.gd"
+EavesdropManager="*res://features/eavesdrop/EavesdropManager.gd"
+RelationshipManager="*res://features/relationship/RelationshipManager.gd"
+MaidProgressionChecker="*res://features/relationship/MaidProgressionChecker.gd"
+InboxManager="*res://features/inbox/InboxManager.gd"
+PowerInfluence="*res://features/power/PowerInfluence.gd"
 
 [input]
 
