@@ -107,4 +107,4 @@ func _on_new_message_received(data: Dictionary) -> void:
 		_update_unread_count(await InboxManager.load_inbox(current_tab))
 
 func _on_BackBtn_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+	get_tree().change_scene_to_file("res://scenes/main/Hub.tscn")

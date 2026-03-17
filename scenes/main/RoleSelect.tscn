@@ -268,7 +268,6 @@ offset_bottom = -30.0
 grow_horizontal = 2
 grow_vertical = 0
 disabled = true
-mouse_filter = 2
 text = "进入大观园"
 
 [connection signal="pressed" from="ConfirmBtn" to="." method="_on_confirm_btn_pressed"]

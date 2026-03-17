@@ -100,21 +100,18 @@ theme_override_constants/separation = 10
 custom_minimum_size = Vector2(120, 60)
 layout_mode = 2
 size_flags_horizontal = 3
-mouse_filter = 2
 text = "银库"
 
 [node name="InboxBtn" type="Button" parent="NavigationPanel/NavigationVBox/Row1"]
 custom_minimum_size = Vector2(120, 60)
 layout_mode = 2
 size_flags_horizontal = 3
-mouse_filter = 2
 text = "门房信箱"
 
 [node name="IntelBagBtn" type="Button" parent="NavigationPanel/NavigationVBox/Row1"]
 custom_minimum_size = Vector2(120, 60)
 layout_mode = 2
 size_flags_horizontal = 3
-mouse_filter = 2
 text = "情报背包"
 
 [node name="Row2" type="HBoxContainer" parent="NavigationPanel/NavigationVBox"]
@@ -125,21 +122,18 @@ theme_override_constants/separation = 10
 custom_minimum_size = Vector2(120, 60)
 layout_mode = 2
 size_flags_horizontal = 3
-mouse_filter = 2
 text = "流言广场"
 
 [node name="PoetryHallBtn" type="Button" parent="NavigationPanel/NavigationVBox/Row2"]
 custom_minimum_size = Vector2(120, 60)
 layout_mode = 2
 size_flags_horizontal = 3
-mouse_filter = 2
 text = "海棠诗社"
 
 [node name="TimePanelBtn" type="Button" parent="NavigationPanel/NavigationVBox/Row2"]
 custom_minimum_size = Vector2(120, 60)
 layout_mode = 2
 size_flags_horizontal = 3
-mouse_filter = 2
 text = "时间面板"
 
 [node name="Row3" type="HBoxContainer" parent="NavigationPanel/NavigationVBox"]
@@ -150,21 +144,18 @@ theme_override_constants/separation = 10
 custom_minimum_size = Vector2(120, 60)
 layout_mode = 2
 size_flags_horizontal = 3
-mouse_filter = 2
 text = "蜂腰桥集市"
 
 [node name="EavesdropHubBtn" type="Button" parent="NavigationPanel/NavigationVBox/Row3"]
 custom_minimum_size = Vector2(120, 60)
 layout_mode = 2
 size_flags_horizontal = 3
-mouse_filter = 2
 text = "挂机中心"
 
 [node name="EavesdropBtn" type="Button" parent="NavigationPanel/NavigationVBox/Row3"]
 custom_minimum_size = Vector2(120, 60)
 layout_mode = 2
 size_flags_horizontal = 3
-mouse_filter = 2
 text = "听壁脚"
 
 [node name="NotificationList" type="VBoxContainer" parent="."]
@@ -183,14 +174,4 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 visible = false
 mouse_filter = 1
-
-[connection signal="pressed" from="NavigationGrid/TreasuryBtn" to="." method="_on_TreasuryBtn_pressed"]
-[connection signal="pressed" from="NavigationGrid/InboxBtn" to="." method="_on_InboxBtn_pressed"]
-[connection signal="pressed" from="NavigationGrid/IntelBagBtn" to="." method="_on_IntelBagBtn_pressed"]
-[connection signal="pressed" from="NavigationGrid/RumorBoardBtn" to="." method="_on_RumorBoardBtn_pressed"]
-[connection signal="pressed" from="NavigationGrid/PoetryHallBtn" to="." method="_on_PoetryHallBtn_pressed"]
-[connection signal="pressed" from="NavigationGrid/TimePanelBtn" to="." method="_on_TimePanelBtn_pressed"]
-[connection signal="pressed" from="NavigationGrid/MarketBtn" to="." method="_on_MarketBtn_pressed"]
-[connection signal="pressed" from="NavigationGrid/EavesdropHubBtn" to="." method="_on_EavesdropHubBtn_pressed"]
-[connection signal="pressed" from="NavigationGrid/EavesdropBtn" to="." method="_on_EavesdropBtn_pressed"]
 

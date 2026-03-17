@@ -19,6 +19,14 @@ var _available_targets: Array = []
 func _ready():
 	_setup_ui()
 	await _load_targets()
+	
+	# 连接精力变化信号，确保 UI 同步
+	if not PlayerState.stamina_changed.is_connected(_on_stamina_changed_signal):
+		PlayerState.stamina_changed.connect(_on_stamina_changed_signal)
+		
+	_update_stamina_display()
+
+func _on_stamina_changed_signal(_new_val):
 	_update_stamina_display()
 
 func _setup_ui():

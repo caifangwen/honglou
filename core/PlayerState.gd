@@ -16,8 +16,11 @@ var current_game_id: String = "" # 当前局 id
 # 各阶层通用数值（根据角色阶层初始化不同值）
 var stamina: int = 6:
 	set(val):
-		stamina = val
-		stamina_changed.emit(stamina)
+		if stamina != val:
+			stamina = val
+			# 更新基础值时重置刷新时间，以当前时间为准
+			last_stamina_refresh = int(Time.get_unix_time_from_system())
+			stamina_changed.emit(stamina)
 var stamina_max: int = 6
 var qi_shu: int = GameConfig.INIT_QI_SHU:
 	set(val):
@@ -54,6 +57,14 @@ func load_from_db(row: Dictionary) -> void:
 	current_game_id = _safe_get(row, "current_game_id", "")
 	stamina         = _safe_get(row, "stamina", stamina)
 	stamina_max     = _safe_get(row, "stamina_max", stamina_max)
+	
+	# 处理精力刷新时间
+	var refreshed_at = _safe_get(row, "stamina_refreshed_at", "")
+	if refreshed_at != "":
+		last_stamina_refresh = _parse_iso_timestamp(refreshed_at)
+	else:
+		last_stamina_refresh = int(Time.get_unix_time_from_system())
+		
 	qi_shu          = _safe_get(row, "qi_points", qi_shu)
 	silver          = _safe_get(row, "silver", silver)
 	face_value      = _safe_get(row, "face_value", face_value)
@@ -63,6 +74,13 @@ func load_from_db(row: Dictionary) -> void:
 func _safe_get(dict: Dictionary, key: String, default: Variant) -> Variant:
 	var val: Variant = dict.get(key)
 	return val if val != null else default
+
+func _parse_iso_timestamp(iso_str: String) -> int:
+	if iso_str == "": 
+		return int(Time.get_unix_time_from_system())
+	# 处理常见格式，去掉 T、Z、+ 等干扰
+	var clean = iso_str.replace("T", " ").split("+")[0].split("Z")[0]
+	return int(Time.get_unix_time_from_datetime_string(clean))
 
 func initialize(role: String) -> void:
 	role_class = role
@@ -87,7 +105,31 @@ func consume_stamina(amount: int) -> bool:
 	var current: int = get_current_stamina()
 	if current < amount:
 		return false
+	# 设置 stamina 会触发 setter 自动更新 last_stamina_refresh 和发出信号
 	stamina = current - amount
-	last_stamina_refresh = int(Time.get_unix_time_from_system())
-	stamina_changed.emit(stamina)
+	# 消耗精力后同步到数据库
+	sync_to_db()
 	return true
+
+func sync_to_db() -> void:
+	if player_db_id == "": 
+		print("[PlayerState] player_db_id is empty, skipping sync")
+		return
+	
+	var data = {
+		"stamina": stamina,
+		"stamina_refreshed_at": Time.get_datetime_string_from_system(false, true),
+		"qi_points": qi_shu,
+		"silver": silver,
+		"prestige": prestige,
+		"loyalty": loyalty,
+		"face_value": face_value
+	}
+	
+	print("[PlayerState] Syncing to DB: ", data)
+	# 使用 db_update 而不是 update_into_table，因为 db_update 处理了 rest/v1 前缀
+	var res = await SupabaseManager.db_update("players", "id=eq." + player_db_id, data)
+	if res["code"] != 200:
+		push_error("[PlayerState] Sync to DB failed: " + str(res.get("error", "unknown")))
+	else:
+		print("[PlayerState] Sync to DB successful")

@@ -86,20 +86,18 @@ func _refresh_steward_data() -> void:
 		push_error("[TreasuryUI] Supabase current_uid is empty")
 		return
 
-	# 1. 获取 players 表中的最新私产和精力
+	# 1. 获取 players 表中的最新属性
 	var p_res = await SupabaseManager.db_get("/rest/v1/players?auth_uid=eq.%s&select=*" % steward_uid)
 	if p_res["code"] == 200 and not p_res["data"].is_empty():
 		var p_data = p_res["data"][0]
-		var private_silver = p_data.get("private_silver", 0)
-		var current_stamina = p_data.get("stamina", 0)
-		var max_stamina = p_data.get("stamina_max", 6)
-		var p_db_id = p_data.get("id", "")
+		
+		# 使用 PlayerState 统一加载
+		PlayerState.load_from_db(p_data)
 
-		# 同步到 PlayerState
-		PlayerState.silver = private_silver
-		PlayerState.stamina = current_stamina
-		PlayerState.stamina_max = max_stamina
-		PlayerState.player_db_id = p_db_id
+		var private_silver = PlayerState.silver
+		var current_stamina = PlayerState.get_current_stamina()
+		var max_stamina = PlayerState.stamina_max
+		var p_db_id = PlayerState.player_db_id
 
 		if private_assets_label:
 			private_assets_label.text = "个人私产: %d" % private_silver
@@ -741,7 +739,7 @@ func _on_DebugAllowanceBtn_pressed() -> void:
 	print("[Debug] No players to distribute to")
 
 func _on_BackBtn_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+	get_tree().change_scene_to_file("res://scenes/main/Hub.tscn")
 
 func _on_InboxBtn_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/Inbox.tscn")
+	get_tree().change_scene_to_file("res://features/inbox/Inbox.tscn")

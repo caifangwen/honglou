@@ -68,12 +68,10 @@ autowrap_mode = 3
 
 [node name="LoginBtn" type="Button" parent="CenterContainer/LoginPanel"]
 layout_mode = 2
-mouse_filter = 2
 text = "登 录"
 
 [node name="RegisterBtn" type="Button" parent="CenterContainer/LoginPanel"]
 layout_mode = 2
-mouse_filter = 2
 text = "注册新账号"
 
 [node name="QuickLoginLabel" type="Label" parent="CenterContainer/LoginPanel"]

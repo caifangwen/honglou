@@ -401,8 +401,8 @@ func _on_fragment_expired(fragment_id: String):
 # UI 更新
 # ---------------------------------------------------------
 
-func _on_stamina_changed(val: int) -> void:
-	stamina_label.text = "精力：%d/%d" % [val, PlayerState.stamina_max]
+func _on_stamina_changed(_val: int) -> void:
+	stamina_label.text = "精力：%d/%d" % [PlayerState.get_current_stamina(), PlayerState.stamina_max]
 
 func _on_qi_shu_changed(val: int) -> void:
 	qi_shu_label.text = "气数：%d" % val
@@ -435,10 +435,10 @@ func _on_go_listening_pressed() -> void:
 	get_tree().change_scene_to_file("res://features/eavesdrop/EavesdropScene.tscn")
 
 func _on_go_market_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/Market.tscn")
+	get_tree().change_scene_to_file("res://features/market/BridgeMarket.tscn")
 
 func _on_BackBtn_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+	get_tree().change_scene_to_file("res://scenes/main/Hub.tscn")
 
 func _on_InboxBtn_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/Inbox.tscn")
+	get_tree().change_scene_to_file("res://features/inbox/Inbox.tscn")

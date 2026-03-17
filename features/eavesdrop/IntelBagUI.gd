@@ -9,7 +9,7 @@ func _ready() -> void:
 	current_listen_label.text = "当前监听地点：无"
 
 func _on_BackBtn_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+	get_tree().change_scene_to_file("res://scenes/main/Hub.tscn")
 
 func _on_YiHongYuanBtn_pressed() -> void:
 	_set_listen_location("怡红院后窗")

@@ -27,7 +27,7 @@ func _ready():
 	_log("调试面板已就绪", "SYSTEM")
 
 func _on_BackBtn_pressed():
-	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+	get_tree().change_scene_to_file("res://scenes/main/Hub.tscn")
 
 func _setup_ui():
 	# 清空现有 UI

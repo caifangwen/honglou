@@ -84,8 +84,7 @@ func _init_player_info() -> void:
 	role_class_label.text = PlayerState.role_class
 	silver_label.text = "银两：%d" % PlayerState.silver
 	qi_shu_label.text = "气数：%d" % PlayerState.qi_shu
-	if is_instance_valid(stamina_label):
-		stamina_label.text = "精力：%d/%d" % [PlayerState.stamina, PlayerState.stamina_max]
+	_update_stamina_display()
 
 func _on_deficit_changed(new_value: float) -> void:
 	deficit_bar.value = new_value
@@ -94,15 +93,17 @@ func _on_conflict_changed(new_value: float) -> void:
 	conflict_bar.value = new_value
 
 func _on_silver_changed(new_value: int) -> void:
-	silver_label.text = str(new_value)
+	silver_label.text = "银两：%d" % new_value
 
 func _on_qi_shu_changed(new_value: int) -> void:
-	qi_shu_label.text = str(new_value)
+	qi_shu_label.text = "气数：%d" % new_value
 
 func _on_stamina_changed(_new_value: int) -> void:
-	# 更新精力显示
+	_update_stamina_display()
+
+func _update_stamina_display() -> void:
 	if is_instance_valid(stamina_label):
-		stamina_label.text = "精力：%d/%d" % [PlayerState.stamina, PlayerState.stamina_max]
+		stamina_label.text = "精力：%d/%d" % [PlayerState.get_current_stamina(), PlayerState.stamina_max]
 
 # === 导航按钮回调 ===
 

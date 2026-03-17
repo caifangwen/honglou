@@ -42,7 +42,7 @@ func _on_publish_panel_visibility_changed():
 		_load_rumors()
 
 func _on_back_pressed():
-	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+	get_tree().change_scene_to_file("res://scenes/main/Hub.tscn")
 
 func _on_publish_btn_pressed():
 	# Reuse existing panel or create new one

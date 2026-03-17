@@ -154,7 +154,7 @@ func _cancel_session(session_id: String):
 
 func _on_back_pressed():
 	back_pressed.emit()
-	get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+	get_tree().change_scene_to_file("res://scenes/main/Hub.tscn")
 
 func _on_refresh_pressed():
 	refresh_btn.disabled = true

@@ -16,9 +16,8 @@ func _ready() -> void:
 	var current_game_id = "00000000-0000-0000-0000-000000000001"
 	GameTime.load_game_data(current_game_id)
 
-	print("[Main] Calling call_deferred(_go_to_hub) - SKIP LOGIN FOR TEST")
-	# 测试：直接跳转到 Hub（跳过登录）
-	call_deferred("_go_to_hub")
+	# 默认从登录开始
+	call_deferred("_go_to_login")
 
 func _setup_debug_time_panel() -> void:
 	var debug_scene = load("res://scenes/debug/DebugTimePanel.tscn")

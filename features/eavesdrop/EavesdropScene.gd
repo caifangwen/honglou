@@ -4,13 +4,13 @@ extends Control
 
 signal eavesdrop_started(success: bool)
 
-@onready var grid_container = $MainContainer/GridContainer
+@onready var grid_container = $MainContainer/ScrollContainer/GridContainer
 @onready var duration_spin = $MainContainer/ControlPanel/DurationPanel/VBoxContainer/SpinBox
 @onready var start_btn = $BottomBar/StartBtn
 @onready var duo_panel = $MainContainer/ControlPanel/DuoPanel
 @onready var partner_label = $MainContainer/ControlPanel/DuoPanel/VBoxContainer/PartnerLabel
 @onready var partner_scene_option = $MainContainer/ControlPanel/DuoPanel/VBoxContainer/OptionButton
-@onready var duo_hint_label = $MainContainer/ControlPanel/DuoHintLabel
+@onready var duo_hint_label = $MainContainer/DuoHintLabel
 @onready var back_btn = $TopBar/BackButton
 @onready var stamina_label = $TopBar/StaminaLabel
 @onready var refresh_btn = $TopBar/RefreshBtn
@@ -43,10 +43,27 @@ func _ready():
 	print("[EavesdropScene] Checking partner relationship...")
 	await _check_partner_relationship()
 	
+	# 连接精力变化信号，确保 UI 同步
+	if not PlayerState.stamina_changed.is_connected(_on_stamina_changed_signal):
+		PlayerState.stamina_changed.connect(_on_stamina_changed_signal)
+	
+	# 主动刷新一次最新的玩家状态（确保与其他模块同步）
+	await _refresh_player_state()
+	
 	# 更新精力显示
 	_update_stamina_display_async()
 	
 	print("[EavesdropScene] _ready completed")
+
+func _refresh_player_state():
+	print("[EavesdropScene] _refresh_player_state called")
+	var res = await SupabaseManager.db_get("/rest/v1/players?auth_uid=eq.%s&select=*" % SupabaseManager.current_uid)
+	if res["code"] == 200 and not res["data"].is_empty():
+		PlayerState.load_from_db(res["data"][0])
+		print("[EavesdropScene] PlayerState refreshed from DB")
+
+func _on_stamina_changed_signal(_new_val):
+	_update_stamina_display_async()
 
 func _setup_static_ui():
 	print("[EavesdropScene] _setup_static_ui called")
@@ -378,14 +395,17 @@ func _on_debug_stamina_confirm():
 
 func _add_debug_stamina():
 	PlayerState.stamina = min(PlayerState.stamina + 3, PlayerState.stamina_max)
-	PlayerState.last_stamina_refresh = int(Time.get_unix_time_from_system())
+	# 不需要手动设置 last_stamina_refresh，setter 已经处理了
 	
 	print("[EavesdropScene] 调试：精力已设置为 %d/%d" % [PlayerState.stamina, PlayerState.stamina_max])
+	
+	# 同步到数据库，使其他场景可见
+	await PlayerState.sync_to_db()
 	
 	# 更新显示
 	_update_stamina_display_async()
 	
-	_show_info("精力已补充 3 点，当前：%d/%d" % [PlayerState.stamina, PlayerState.stamina_max])
+	_show_info("精力已补充 3 点，当前：%d/%d (已同步至云端)" % [PlayerState.stamina, PlayerState.stamina_max])
 
 func _on_start_pressed():
 	print("[EavesdropScene] _on_start_pressed called")
@@ -451,7 +471,7 @@ func _on_start_pressed():
 		# 延迟后返回，使用 call_deferred 避免场景切换问题
 		await get_tree().create_timer(1.5).timeout
 		if is_instance_valid(self):
-			get_tree().change_scene_to_file.call_deferred("res://scenes/Hub.tscn")
+			get_tree().change_scene_to_file.call_deferred("res://scenes/main/Hub.tscn")
 	else:
 		_show_error("开始挂机失败，请查看控制台日志获取详细信息")
 		start_btn.disabled = false
@@ -476,7 +496,7 @@ func _on_back_btn_pressed():
 	var tree = get_tree()
 	if not tree or not is_instance_valid(tree):
 		return
-	var err = tree.change_scene_to_file("res://scenes/Hub.tscn")
+	var err = tree.change_scene_to_file("res://scenes/main/Hub.tscn")
 	if err != OK:
 		push_error("[EavesdropScene] Failed to change scene: %d" % err)
 
