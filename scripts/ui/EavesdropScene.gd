@@ -390,6 +390,17 @@ func _add_debug_stamina():
 func _on_start_pressed():
 	print("[EavesdropScene] _on_start_pressed called")
 	
+	# 调试：检查 PlayerState 和 GameState
+	print("[EavesdropScene] === 状态检查 ===")
+	print("[EavesdropScene] PlayerState.uid: ", PlayerState.uid)
+	print("[EavesdropScene] PlayerState.player_db_id: ", PlayerState.player_db_id)
+	print("[EavesdropScene] PlayerState.current_game_id: ", PlayerState.current_game_id)
+	print("[EavesdropScene] GameState.current_game_id: ", GameState.current_game_id)
+	print("[EavesdropScene] PlayerState.stamina: ", PlayerState.stamina)
+	print("[EavesdropScene] PlayerState.get_current_stamina(): ", PlayerState.get_current_stamina())
+	print("[EavesdropScene] PlayerState.role_class: ", PlayerState.role_class)
+	print("[EavesdropScene] selected_scene: ", selected_scene)
+
 	if selected_scene == "":
 		print("[EavesdropScene] No scene selected")
 		_show_error("请先选择一个监听场景")
@@ -412,10 +423,13 @@ func _on_start_pressed():
 				p_scene = partner_scene_option.get_item_metadata(idx)
 				print("[EavesdropScene] Partner scene: ", p_scene)
 
-	# 检查精力
-	if PlayerState.stamina < EavesdropManager.COST_STAMINA:
-		print("[EavesdropScene] Not enough stamina: ", PlayerState.stamina, " < ", EavesdropManager.COST_STAMINA)
-		_show_error("精力不足，需要 %d 点" % EavesdropManager.COST_STAMINA)
+	# 检查精力（使用 get_current_stamina 获取实际精力）
+	var current_stamina = PlayerState.get_current_stamina()
+	print("[EavesdropScene] 精力检查：当前=%d, 需要=%d" % [current_stamina, EavesdropManager.COST_STAMINA])
+	
+	if current_stamina < EavesdropManager.COST_STAMINA:
+		print("[EavesdropScene] 精力不足！stamina=%d, get_current_stamina()=%d" % [PlayerState.stamina, current_stamina])
+		_show_error("精力不足，需要 %d 点，当前只有 %d 点" % [EavesdropManager.COST_STAMINA, current_stamina])
 		return
 
 	print("[EavesdropScene] Starting eavesdrop: scene=", selected_scene, ", duration=", duration, ", partner=", (partner_uid if partner_uid != "" else "none"))
@@ -423,9 +437,12 @@ func _on_start_pressed():
 	start_btn.text = "请求中..."
 
 	var success = await EavesdropManager.start_eavesdrop(PlayerState.uid, selected_scene, duration, partner_uid)
+	
+	print("[EavesdropScene] start_eavesdrop returned: ", success)
 
 	if success:
 		if partner_uid != "" and p_scene != "":
+			print("[EavesdropScene] Starting partner eavesdrop for: ", partner_uid)
 			EavesdropManager.start_eavesdrop(partner_uid, p_scene, duration, PlayerState.uid)
 
 		_show_info("挂机任务已开始，预计 %d 小时后完成" % duration)
@@ -436,7 +453,7 @@ func _on_start_pressed():
 		if is_instance_valid(self):
 			get_tree().change_scene_to_file.call_deferred("res://scenes/Hub.tscn")
 	else:
-		_show_error("开始挂机失败，请检查精力或网络")
+		_show_error("开始挂机失败，请查看控制台日志获取详细信息")
 		start_btn.disabled = false
 		start_btn.text = "开始挂机"
 
