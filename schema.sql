@@ -259,12 +259,25 @@ CREATE TABLE IF NOT EXISTS public.messages (
     game_id uuid NOT NULL REFERENCES public.games(id),
     sender_uid uuid NOT NULL REFERENCES public.players(id),
     receiver_uid uuid NOT NULL REFERENCES public.players(id),
+    message_type text NOT NULL DEFAULT 'private' CHECK (message_type IN ('private', 'rumor', 'batch_order', 'system', 'petition', 'accusation')),
     content text NOT NULL,
-    status message_status DEFAULT 'pending',
+    attachments jsonb DEFAULT '[]'::jsonb,
+    stamina_cost int NOT NULL DEFAULT 1,
     is_read boolean DEFAULT FALSE,
+    is_tampered boolean DEFAULT false,
+    original_content text,
+    is_intercepted boolean DEFAULT false,
+    stage int NOT NULL DEFAULT 0,
+    expires_at timestamptz,
+    status message_status DEFAULT 'pending',
     created_at timestamptz DEFAULT now(),
     read_at timestamptz
 );
+
+-- 添加索引
+CREATE INDEX IF NOT EXISTS idx_messages_game_receiver ON public.messages(game_id, receiver_uid);
+CREATE INDEX IF NOT EXISTS idx_messages_type ON public.messages(message_type);
+CREATE INDEX IF NOT EXISTS idx_messages_sender ON public.messages(sender_uid);
 
 -- ============================================================
 -- SECTION 4: 听壁脚系统表

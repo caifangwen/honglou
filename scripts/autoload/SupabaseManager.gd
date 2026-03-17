@@ -172,10 +172,14 @@ func db_insert(table, data):
 	var body = JSON.stringify(data)
 	if _is_local_mode:
 		# 本地模式：使用 pgREST（无 /rest/v1/ 前缀）
-		return await _post(GameConfig.LOCAL_API_BASE + "/" + table, body, false)
+		var url = GameConfig.LOCAL_API_BASE + "/" + table
+		print("[SupabaseManager] db_insert (local mode): table=", table, ", url=", url)
+		return await _post(url, body, false)
 	else:
 		# 云端模式：使用相对路径
-		return await _post("/rest/v1/" + table, body, true)
+		var endpoint = "/rest/v1/" + table
+		print("[SupabaseManager] db_insert (cloud mode): table=", table, ", endpoint=", endpoint)
+		return await _post(endpoint, body, true)
 
 # ─────────────────────────────────────────
 # 数据库：更新（PATCH）
@@ -214,19 +218,20 @@ func db_rpc(function_name: String, params: Dictionary = {}, with_auth: bool = tr
 func _build_headers(with_auth):
 	var headers = PackedStringArray([
 		"Content-Type: application/json",
-		"apikey: " + GameConfig.SUPABASE_ANON_KEY,
 		"Prefer: return=representation"   # 插入/更新后返回结果
 	])
-	
-	# 本地模式不使用 JWT 认证
+
+	# 本地模式使用简化的认证头
 	if _is_local_mode:
-		# 本地模式：使用 Prefer 头跳过认证检查
+		# 本地模式：使用 Prefer 头跳过认证检查，同时设置简单的 apikey
+		headers.append("apikey: local-dev-key")
 		headers.append("Prefer: return=representation,merge-duplicates")
 	else:
-		# 云端模式：使用 JWT token
+		# 云端模式：使用 Supabase 标准认证
+		headers.append("apikey: " + GameConfig.SUPABASE_ANON_KEY)
 		if with_auth and access_token != "":
 			headers.append("Authorization: Bearer " + access_token)
-	
+
 	return headers
  
 func _post(endpoint_or_url, body, with_auth):

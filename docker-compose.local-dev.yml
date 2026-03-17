@@ -22,6 +22,7 @@ services:
       - ./local_db_data:/var/lib/postgresql/data
       - ./combined_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
       - ./seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+      - ./fix_messages_schema.sql:/docker-entrypoint-initdb.d/03-fix-messages.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s

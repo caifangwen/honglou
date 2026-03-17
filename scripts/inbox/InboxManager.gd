@@ -55,8 +55,11 @@ func send_private_message(receiver_uid: String, content: String, attachments: Ar
         "stamina_cost": 1,
         "is_read": false
     }
-    
+
+    print("[InboxManager] Sending private message: ", msg_data)
     var res = await SupabaseManager.db_insert("messages", msg_data)
+    print("[InboxManager] db_insert response: ", res)
+
     if res["code"] == 201 or res["code"] == 200:
         return {"success": true, "data": res["data"]}
     else:
