@@ -69,8 +69,8 @@ func _ready():
 	_completion_check_timer.autostart = true
 	add_child(_completion_check_timer)
 
-	# 恢复活跃会话的定时器（等待 PlayerState 初始化完成）
-	await get_tree().create_timer(0.5).timeout
+	# 恢复活跃会话的定时器（等待 PlayerState 和 GameState 初始化完成）
+	await get_tree().create_timer(1.0).timeout
 	await _restore_active_sessions()
 
 # ─────────────────────────────────────────
@@ -94,10 +94,7 @@ func _on_realtime_update(table_name: String, data: Dictionary):
 # ─────────────────────────────────────────
 
 func start_eavesdrop(player_uid: String, scene: String, duration_hours: int, partner_uid: String = "") -> bool:
-	print("[Eavesdrop] start_eavesdrop called: player=%s, scene=%s, duration=%d" % [player_uid, scene, duration_hours])
-	print("[Eavesdrop] PlayerState.stamina=%d, COST_STAMINA=%d" % [PlayerState.stamina, COST_STAMINA])
-
-	# 1. 检查精力是否足够（直接使用 PlayerState）
+	# 1. 检查精力是否足够
 	if PlayerState.stamina < COST_STAMINA:
 		push_warning("[Eavesdrop] 精力不足：%d < %d" % [PlayerState.stamina, COST_STAMINA])
 		return false
@@ -111,11 +108,9 @@ func start_eavesdrop(player_uid: String, scene: String, duration_hours: int, par
 	var listener_count = await get_scene_listener_count(GameState.current_game_id, scene)
 	var success_rate_mod = 1.0
 	if listener_count >= 5:
-		success_rate_mod = 0.5 # 超过 5 人成功率下降 50%
+		success_rate_mod = 0.5
 	elif listener_count >= 3:
-		success_rate_mod = 0.8 # 3-5 人下降 20%
-
-	print("[Eavesdrop] listener_count=%d, success_rate_mod=%f" % [listener_count, success_rate_mod])
+		success_rate_mod = 0.8
 
 	# 4. 计算结束时间
 	var start_time = int(Time.get_unix_time_from_system())
@@ -136,27 +131,20 @@ func start_eavesdrop(player_uid: String, scene: String, duration_hours: int, par
 		"result_count": 0
 	}
 
-	print("[Eavesdrop] session_data=%s" % str(session_data))
-
 	# 6. 写入数据库
 	var res = await SupabaseManager.insert_into_table("eavesdrop_sessions", session_data)
-	print("[Eavesdrop] insert result: code=%d, data=%s" % [res.get("code", -1), str(res.get("data", "null"))])
 
 	if res["code"] != 201:
 		push_error("[Eavesdrop] 开启监听失败：" + str(res.get("error", "unknown error")))
 		return false
 
 	var session_id = res["data"][0]["id"]
-	print("[Eavesdrop] session_id=%s" % session_id)
 
-	# 7. 扣除精力（使用 PlayerState 的 consume_stamina 方法）
+	# 7. 扣除精力
 	if not PlayerState.consume_stamina(COST_STAMINA):
 		push_warning("[Eavesdrop] 本地精力扣除失败")
-		# 回滚会话
 		await SupabaseManager.db_update("eavesdrop_sessions", "id=eq." + session_id, {"status": "cancelled"})
 		return false
-
-	print("[Eavesdrop] stamina consumed, new stamina=%d" % PlayerState.stamina)
 
 	# 8. 启动定时器
 	_start_session_timer(session_id, end_time)
@@ -185,21 +173,35 @@ func _on_session_timer_timeout(session_id: String):
 func _restore_active_sessions():
 	# 检查 PlayerState 是否已初始化
 	if PlayerState.uid == "" or PlayerState.uid == "00000000-0000-0000-0000-000000000000":
-		print("[EavesdropManager] _restore_active_sessions skipped: PlayerState.uid not set")
+		print("[EavesdropManager] _restore_active_sessions skipped: PlayerState.uid not set or invalid")
 		return
+
+	# 检查 GameState 是否已初始化
+	if GameState.current_game_id == "" or GameState.current_game_id == "00000000-0000-0000-0000-000000000000":
+		print("[EavesdropManager] _restore_active_sessions skipped: GameState.current_game_id not set or invalid")
+		return
+
+	print("[EavesdropManager] Restoring active sessions for player: ", PlayerState.uid)
 
 	var res = await SupabaseManager.db_get(
 		"/rest/v1/eavesdrop_sessions?player_uid=eq.%s&status=eq.active&select=*" % PlayerState.uid
 	)
 	if res["code"] != 200:
-		print("[EavesdropManager] _restore_active_sessions failed: code=%d" % res["code"])
+		print("[EavesdropManager] _restore_active_sessions failed: code=", res["code"], ", error=", res.get("error", "unknown"))
 		return
 
+	var restored_count = 0
 	for session in res["data"]:
 		var end_time = Time.get_unix_time_from_datetime_string(session["ends_at"])
-		if end_time > Time.get_unix_time_from_system():
-			print("[EavesdropManager] Restoring session: %s" % session["id"])
+		var now = Time.get_unix_time_from_system()
+		if end_time > now:
+			print("[EavesdropManager] Restoring session: ", session["id"], ", ends_at: ", end_time, ", now: ", now)
 			_start_session_timer(session["id"], end_time)
+			restored_count += 1
+		else:
+			print("[EavesdropManager] Session already expired: ", session["id"])
+
+	print("[EavesdropManager] Restored ", restored_count, " active sessions")
 
 func _check_all_sessions_completion():
 	# 检查 PlayerState 是否已初始化
@@ -232,7 +234,7 @@ func generate_intel_fragment(session_id: String, force: bool = false) -> void:
 		"/rest/v1/intel_intercepts?target_uid=eq.%s&status=eq.active&ends_at=gt.now&select=id" % session["player_uid"]
 	)
 	if intercept_res["code"] == 200 and not intercept_res["data"].is_empty():
-		print("[Eavesdrop] 玩家 %s 被拦截，无法生成情报" % session["player_uid"])
+		print("[Eavesdrop] 玩家 ", session["player_uid"], " 被拦截，无法生成情报")
 		return
 	
 	var scene_key = session["scene_key"]
@@ -365,23 +367,29 @@ func check_session_completion(session_id: String) -> void:
 func get_scene_listener_count(game_id: String, scene: String) -> int:
 	# 检查 game_id 是否有效
 	if not game_id or game_id == "" or game_id == "00000000-0000-0000-0000-000000000000":
-		print("[EavesdropManager] get_scene_listener_count: invalid game_id=%s" % game_id)
+		print("[EavesdropManager] get_scene_listener_count: invalid game_id=", game_id)
 		return 0
 
 	var endpoint = "/rest/v1/eavesdrop_sessions?game_id=eq.%s&scene_key=eq.%s&status=eq.active&select=id" % [game_id, scene]
 	var res = await SupabaseManager.db_get(endpoint)
 	if res["code"] == 200 and res["data"] is Array:
 		return res["data"].size()
-	print("[EavesdropManager] get_scene_listener_count failed: code=%d, data type=%s" % [res.get("code", -1), typeof(res.get("data", null))])
+	print("[EavesdropManager] get_scene_listener_count failed: code=", res.get("code", -1), ", data type=", typeof(res.get("data", null)))
 	return 0
 
 func get_active_sessions() -> Array:
+	# 检查 PlayerState.uid 是否有效
+	if PlayerState.uid == "" or PlayerState.uid == "00000000-0000-0000-0000-000000000000":
+		print("[EavesdropManager] get_active_sessions: invalid PlayerState.uid=", PlayerState.uid)
+		return []
+	
 	var res = await SupabaseManager.db_get(
 		"/rest/v1/eavesdrop_sessions?player_uid=eq.%s&status=eq.active&select=*" % PlayerState.uid
 	)
+	print("[EavesdropManager] get_active_sessions result: code=", res.get("code", -1), ", data=", res.get("data", "N/A"))
 	if res["code"] == 200 and res["data"] is Array:
 		return res["data"]
-	print("[EavesdropManager] get_active_sessions failed: code=%d, data type=%s" % [res.get("code", -1), typeof(res.get("data", null))])
+	print("[EavesdropManager] get_active_sessions failed: code=", res.get("code", -1), ", data type=", typeof(res.get("data", null)))
 	return []
 
 func get_session_time_remaining(session_id: String) -> int:

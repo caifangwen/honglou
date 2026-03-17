@@ -33,17 +33,18 @@ func _setup_ui():
 
 func _load_targets():
 	target_option.clear()
-	target_option.add_item("选择目标玩家", -1)
-	
+	target_option.add_item("选择目标玩家")
+	target_option.set_item_metadata(target_option.get_item_count() - 1, -1)
+
 	var endpoint = "/rest/v1/players?id=neq.%s&select=id,character_name,role_class" % PlayerState.uid
 	var res = await SupabaseManager.db_get(endpoint)
-	
+
 	if res["code"] == 200:
 		_available_targets = res["data"]
 		for i in range(_available_targets.size()):
 			var p = _available_targets[i]
-			target_option.add_item("%s (%s)" % [p["character_name"], _localize_role(p["role_class"])], i)
-			target_option.set_item_metadata(i, p["id"])
+			target_option.add_item("%s (%s)" % [p["character_name"], _localize_role(p["role_class"])])
+			target_option.set_item_metadata(target_option.get_item_count() - 1, p["id"])
 	else:
 		_show_toast("加载玩家列表失败")
 

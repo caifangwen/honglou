@@ -75,42 +75,64 @@ func _setup_signals():
 func _setup_filters():
 	# 类型筛选
 	filter_type_option.clear()
-	filter_type_option.add_item("全部类型", "all")
-	filter_type_option.add_item("账目泄露", "account_leak")
-	filter_type_option.add_item("私密行动", "private_action")
-	filter_type_option.add_item("馈赠记录", "gift_record")
-	filter_type_option.add_item("访客信息", "visitor_info")
-	filter_type_option.add_item("长辈青睐", "elder_favor")
+	filter_type_option.add_item("全部类型")
+	filter_type_option.set_item_metadata(filter_type_option.get_item_count() - 1, "all")
+	filter_type_option.add_item("账目泄露")
+	filter_type_option.set_item_metadata(filter_type_option.get_item_count() - 1, "account_leak")
+	filter_type_option.add_item("私密行动")
+	filter_type_option.set_item_metadata(filter_type_option.get_item_count() - 1, "private_action")
+	filter_type_option.add_item("馈赠记录")
+	filter_type_option.set_item_metadata(filter_type_option.get_item_count() - 1, "gift_record")
+	filter_type_option.add_item("访客信息")
+	filter_type_option.set_item_metadata(filter_type_option.get_item_count() - 1, "visitor_info")
+	filter_type_option.add_item("长辈青睐")
+	filter_type_option.set_item_metadata(filter_type_option.get_item_count() - 1, "elder_favor")
 	filter_type_option.item_selected.connect(_on_filter_changed)
-	
+
 	# 场景筛选
 	filter_scene_option.clear()
-	filter_scene_option.add_item("全部场景", "all")
-	filter_scene_option.add_item("怡红院", "yi_hong_yuan")
-	filter_scene_option.add_item("后账房", "treasury_back")
-	filter_scene_option.add_item("蜂腰桥", "bridge")
-	filter_scene_option.add_item("大门", "gate")
-	filter_scene_option.add_item("贾母处", "elder_room")
+	filter_scene_option.add_item("全部场景")
+	filter_scene_option.set_item_metadata(filter_scene_option.get_item_count() - 1, "all")
+	filter_scene_option.add_item("怡红院")
+	filter_scene_option.set_item_metadata(filter_scene_option.get_item_count() - 1, "yi_hong_yuan")
+	filter_scene_option.add_item("后账房")
+	filter_scene_option.set_item_metadata(filter_scene_option.get_item_count() - 1, "treasury_back")
+	filter_scene_option.add_item("蜂腰桥")
+	filter_scene_option.set_item_metadata(filter_scene_option.get_item_count() - 1, "bridge")
+	filter_scene_option.add_item("大门")
+	filter_scene_option.set_item_metadata(filter_scene_option.get_item_count() - 1, "gate")
+	filter_scene_option.add_item("贾母处")
+	filter_scene_option.set_item_metadata(filter_scene_option.get_item_count() - 1, "elder_room")
 	filter_scene_option.item_selected.connect(_on_filter_changed)
-	
+
 	# 价值筛选
 	filter_value_option.clear()
-	filter_value_option.add_item("全部价值", "all")
-	filter_value_option.add_item("★ (低)", "1")
-	filter_value_option.add_item("★★ (中)", "2")
-	filter_value_option.add_item("★★★ (较高)", "3")
-	filter_value_option.add_item("★★★★ (高)", "4")
-	filter_value_option.add_item("★★★★★ (极高)", "5")
+	filter_value_option.add_item("全部价值")
+	filter_value_option.set_item_metadata(filter_value_option.get_item_count() - 1, "all")
+	filter_value_option.add_item("★ (低)")
+	filter_value_option.set_item_metadata(filter_value_option.get_item_count() - 1, "1")
+	filter_value_option.add_item("★★ (中)")
+	filter_value_option.set_item_metadata(filter_value_option.get_item_count() - 1, "2")
+	filter_value_option.add_item("★★★ (较高)")
+	filter_value_option.set_item_metadata(filter_value_option.get_item_count() - 1, "3")
+	filter_value_option.add_item("★★★★ (高)")
+	filter_value_option.set_item_metadata(filter_value_option.get_item_count() - 1, "4")
+	filter_value_option.add_item("★★★★★ (极高)")
+	filter_value_option.set_item_metadata(filter_value_option.get_item_count() - 1, "5")
 	filter_value_option.item_selected.connect(_on_filter_changed)
-	
+
 	# 排序选项
 	sort_option.clear()
-	sort_option.add_item("按时间 (新→旧)", "time_desc")
-	sort_option.add_item("按时间 (旧→新)", "time_asc")
-	sort_option.add_item("按价值 (高→低)", "value_desc")
-	sort_option.add_item("按价值 (低→高)", "value_asc")
+	sort_option.add_item("按时间 (新→旧)")
+	sort_option.set_item_metadata(sort_option.get_item_count() - 1, "time_desc")
+	sort_option.add_item("按时间 (旧→新)")
+	sort_option.set_item_metadata(sort_option.get_item_count() - 1, "time_asc")
+	sort_option.add_item("按价值 (高→低)")
+	sort_option.set_item_metadata(sort_option.get_item_count() - 1, "value_desc")
+	sort_option.add_item("按价值 (低→高)")
+	sort_option.set_item_metadata(sort_option.get_item_count() - 1, "value_asc")
 	sort_option.item_selected.connect(_on_filter_changed)
-	
+
 	# 清除筛选
 	clear_filter_btn.pressed.connect(_on_clear_filter_pressed)
 
@@ -298,7 +320,7 @@ func _load_buyer_list() -> void:
 	var res = await SupabaseManager.db_get(endpoint)
 	if res["code"] == 200:
 		for p in res["data"]:
-			sell_buyer_list.add_item(p["character_name"], 0)
+			sell_buyer_list.add_item(p["character_name"])
 			sell_buyer_list.set_item_metadata(sell_buyer_list.get_item_count() - 1, p["id"])
 	else:
 		_show_toast("加载买家列表失败")

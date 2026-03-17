@@ -5,11 +5,11 @@ extends Control
 
 signal back_pressed()
 
-@onready var active_sessions_container = $VBoxContainer/ActiveSessionsContainer
-@onready var stats_label = $VBoxContainer/StatsLabel
-@onready var back_btn = $BackButton
-@onready var refresh_btn = $VBoxContainer/RefreshBtn
-@onready var new_session_btn = $VBoxContainer/NewSessionBtn
+@onready var active_sessions_container = $MainContainer/SessionsPanel/ActiveSessionsContainer
+@onready var stats_label = $MainContainer/StatsLabel
+@onready var back_btn = $TopBar/BackButton
+@onready var refresh_btn = $MainContainer/ButtonPanel/RefreshBtn
+@onready var new_session_btn = $MainContainer/ButtonPanel/NewSessionBtn
 
 @onready var cancel_confirm_dialog = $CancelConfirmDialog
 
@@ -19,14 +19,23 @@ var _active_sessions: Array = []
 var _refresh_timer: Timer
 
 func _ready():
+	print("[EavesdropHub] _ready called")
 	_setup_ui()
 	_setup_timers()
 	await _load_active_sessions()
 
 func _setup_ui():
-	back_btn.pressed.connect(_on_back_pressed)
-	refresh_btn.pressed.connect(_on_refresh_pressed)
-	new_session_btn.pressed.connect(_on_new_session_pressed)
+	print("[EavesdropHub] _setup_ui called")
+	print("[EavesdropHub] back_btn valid: ", is_instance_valid(back_btn))
+	print("[EavesdropHub] refresh_btn valid: ", is_instance_valid(refresh_btn))
+	print("[EavesdropHub] new_session_btn valid: ", is_instance_valid(new_session_btn))
+	
+	if is_instance_valid(back_btn):
+		back_btn.pressed.connect(_on_back_pressed)
+	if is_instance_valid(refresh_btn):
+		refresh_btn.pressed.connect(_on_refresh_pressed)
+	if is_instance_valid(new_session_btn):
+		new_session_btn.pressed.connect(_on_new_session_pressed)
 
 func _setup_timers():
 	# 每 5 秒刷新一次倒计时
@@ -37,6 +46,13 @@ func _setup_timers():
 	add_child(_refresh_timer)
 
 func _load_active_sessions():
+	print("[EavesdropHub] _load_active_sessions called")
+	
+	# 检查节点是否有效
+	if not is_instance_valid(active_sessions_container):
+		print("[EavesdropHub] active_sessions_container is invalid!")
+		return
+	
 	# 清空现有项
 	for child in active_sessions_container.get_children():
 		child.queue_free()
@@ -45,6 +61,8 @@ func _load_active_sessions():
 
 	# 加载活跃会话
 	var sessions = await EavesdropManager.get_active_sessions()
+	print("[EavesdropHub] get_active_sessions returned: ", sessions)
+	
 	if sessions is Array:
 		_active_sessions = sessions
 	else:
@@ -55,9 +73,12 @@ func _load_active_sessions():
 	_update_stats()
 
 	if _active_sessions.is_empty():
+		print("[EavesdropHub] No active sessions, showing hint")
 		_show_no_sessions_hint()
 		return
 
+	print("[EavesdropHub] Creating ", _active_sessions.size(), " session items")
+	
 	# 创建会话项
 	for session in _active_sessions:
 		var item = SESSION_ITEM_SCENE.instantiate()
@@ -89,13 +110,20 @@ func _update_session_timers():
 			child.update_timer()
 
 func _on_cancel_session_pressed(session_id: String):
-	cancel_confirm_dialog.dialog_text = "确定要取消此挂机会话吗？\n已消耗的精力的不会退还。"
+	print("[EavesdropHub] _on_cancel_session_pressed: ", session_id)
+	cancel_confirm_dialog.dialog_text = "确定要取消此挂机会话吗？\n已消耗的精力不会退还。"
 	cancel_confirm_dialog.popup_centered()
 	
-	# 等待用户确认
-	var confirmed = await cancel_confirm_dialog.confirmed
-	if confirmed:
-		await _cancel_session(session_id)
+	# 存储要取消的会话 ID
+	var cancel_data = {"session_id": session_id}
+	
+	# 连接 confirmed 信号（一次性）
+	cancel_confirm_dialog.confirmed.connect(_on_cancel_confirmed.bind(cancel_data), CONNECT_ONE_SHOT)
+
+func _on_cancel_confirmed(cancel_data: Dictionary):
+	var session_id = cancel_data["session_id"]
+	print("[EavesdropHub] _on_cancel_confirmed: ", session_id)
+	await _cancel_session(session_id)
 
 func _cancel_session(session_id: String):
 	var success = await EavesdropManager.cancel_session(session_id)

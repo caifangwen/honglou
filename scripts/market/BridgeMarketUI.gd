@@ -55,10 +55,14 @@ func _refresh_currency():
 func _setup_filters():
 	type_filter.clear()
 	type_filter.add_item("所有类型")
-	type_filter.add_item("账目漏洞", 1)
-	type_filter.add_item("私相授受", 2)
-	type_filter.add_item("行踪诡秘", 3)
-	
+	type_filter.set_item_metadata(type_filter.get_item_count() - 1, 0)
+	type_filter.add_item("账目漏洞")
+	type_filter.set_item_metadata(type_filter.get_item_count() - 1, 1)
+	type_filter.add_item("私相授受")
+	type_filter.set_item_metadata(type_filter.get_item_count() - 1, 2)
+	type_filter.add_item("行踪诡秘")
+	type_filter.set_item_metadata(type_filter.get_item_count() - 1, 3)
+
 	sort_order.clear()
 	sort_order.add_item("最新挂单")
 	sort_order.add_item("价格从低到高")

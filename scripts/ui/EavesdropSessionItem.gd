@@ -10,30 +10,30 @@ signal cancel_pressed(session_id: String)
 @onready var intel_count_label = $HBoxContainer/IntelCountLabel
 @onready var cancel_btn = $HBoxContainer/CancelBtn
 
-var session_data: Dictionary
+var session_data: Dictionary = {}
 var _remaining_seconds: int = 0
 
 func _ready():
-	if not session_data.is_empty():
-		setup(session_data)
+	# 不在 _ready 中自动调用 setup，由外部显式调用
+	pass
 
 func setup(data: Dictionary):
 	session_data = data
-	
+
 	var scene_key = data.get("scene_key", "unknown")
 	var scene_name = EavesdropManager.SCENE_CONFIGS.get(scene_key, {}).get("name", scene_key)
 	scene_label.text = scene_name
-	
+
 	# 状态
 	var status = data.get("status", "active")
 	status_label.text = _localize_status(status)
-	
+
 	# 情报数量
 	intel_count_label.text = "已获情报：%d" % data.get("result_count", 0)
-	
+
 	# 取消按钮
 	cancel_btn.pressed.connect(func(): cancel_pressed.emit(data["id"]))
-	
+
 	# 初始更新计时器
 	update_timer()
 

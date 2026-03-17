@@ -4,15 +4,16 @@ extends Control
 
 signal eavesdrop_started(success: bool)
 
-@onready var grid_container = $VBoxContainer/GridContainer
-@onready var duration_spin = $VBoxContainer/HBoxContainer/SpinBox
-@onready var start_btn = $VBoxContainer/StartBtn
-@onready var duo_panel = $VBoxContainer/DuoPanel
-@onready var partner_label = $VBoxContainer/DuoPanel/PartnerLabel
-@onready var partner_scene_option = $VBoxContainer/DuoPanel/OptionButton
-@onready var back_btn = $BackButton
-@onready var stamina_label = $VBoxContainer/StaminaLabel
-@onready var refresh_btn = $VBoxContainer/HBoxContainer/RefreshBtn
+@onready var grid_container = $MainContainer/GridContainer
+@onready var duration_spin = $MainContainer/ControlPanel/DurationPanel/VBoxContainer/SpinBox
+@onready var start_btn = $BottomBar/StartBtn
+@onready var duo_panel = $MainContainer/ControlPanel/DuoPanel
+@onready var partner_label = $MainContainer/ControlPanel/DuoPanel/VBoxContainer/PartnerLabel
+@onready var partner_scene_option = $MainContainer/ControlPanel/DuoPanel/VBoxContainer/OptionButton
+@onready var duo_hint_label = $MainContainer/ControlPanel/DuoHintLabel
+@onready var back_btn = $TopBar/BackButton
+@onready var stamina_label = $TopBar/StaminaLabel
+@onready var refresh_btn = $TopBar/RefreshBtn
 
 @onready var error_dialog = $ErrorDialog
 @onready var info_dialog = $InfoDialog
@@ -24,50 +25,46 @@ var partner_name = ""
 var _refresh_timer: Timer
 
 func _ready():
-	print("[EavesdropScene] _ready() called")
-	# 首先设置 UI（确保节点已加载）
-	print("[EavesdropScene] Calling _setup_ui()")
-	_setup_ui()
-
-	# 设置定时器
-	print("[EavesdropScene] Calling _setup_timers()")
-	_setup_timers()
-
-	# 检查对食关系（异步）
-	print("[EavesdropScene] Calling _check_partner_relationship()")
-	await _check_partner_relationship()
-
-	# 刷新场景人数（异步）
-	print("[EavesdropScene] Calling _refresh_scenes()")
-	await _refresh_scenes()
-
-	# 更新精力显示
-	print("[EavesdropScene] Calling _update_stamina_display_async()")
-	_update_stamina_display_async()
-
-	print("[EavesdropScene] _ready() completed")
-
-func _setup_ui():
-	print("[EavesdropScene] _setup_ui() started")
+	print("[EavesdropScene] _ready called")
 	
-	# 检查 EavesdropManager 是否可用
-	print("[EavesdropScene] EavesdropManager exists: %s" % str(EavesdropManager != null))
-	print("[EavesdropScene] SCENE_CONFIGS count: %d" % EavesdropManager.SCENE_CONFIGS.size())
-	print("[EavesdropScene] SCENE_CONFIGS keys: %s" % str(EavesdropManager.SCENE_CONFIGS.keys()))
+	# 先设置静态 UI（不依赖异步数据）
+	_setup_static_ui()
+	
+	# 设置定时器
+	_setup_timers()
+	
+	# 立即刷新场景人数（异步）
+	print("[EavesdropScene] Refreshing scenes...")
+	await _refresh_scenes()
+	
+	# 检查对食关系（异步）
+	print("[EavesdropScene] Checking partner relationship...")
+	await _check_partner_relationship()
+	
+	# 更新精力显示
+	_update_stamina_display_async()
+	
+	print("[EavesdropScene] _ready completed")
+
+func _setup_static_ui():
+	print("[EavesdropScene] _setup_static_ui called")
+	print("[EavesdropScene] grid_container: ", grid_container)
+	print("[EavesdropScene] duo_panel: ", duo_panel)
+	print("[EavesdropScene] partner_label: ", partner_label)
+	print("[EavesdropScene] partner_scene_option: ", partner_scene_option)
+	print("[EavesdropScene] duo_hint_label: ", duo_hint_label)
 	
 	# 初始化返回按钮
 	if is_instance_valid(back_btn):
 		back_btn.pressed.connect(_on_back_btn_pressed)
-		print("[EavesdropScene] Connected back_btn")
 	else:
-		push_error("[EavesdropScene] back_btn is null!")
+		printerr("[EavesdropScene] back_btn not found!")
 
 	# 初始化刷新按钮
 	if is_instance_valid(refresh_btn):
 		refresh_btn.pressed.connect(_on_refresh_btn_pressed)
-		print("[EavesdropScene] Connected refresh_btn")
 	else:
-		push_error("[EavesdropScene] refresh_btn is null!")
+		printerr("[EavesdropScene] refresh_btn not found!")
 
 	# 初始化时长选择
 	if is_instance_valid(duration_spin):
@@ -75,46 +72,52 @@ func _setup_ui():
 		duration_spin.max_value = 8
 		duration_spin.value = 1
 		duration_spin.value_changed.connect(_on_duration_changed)
-		print("[EavesdropScene] Initialized duration_spin")
 	else:
-		push_error("[EavesdropScene] duration_spin is null!")
+		printerr("[EavesdropScene] duration_spin not found!")
 
 	# 初始化按钮
 	if is_instance_valid(start_btn):
-		start_btn.pressed.connect(_on_start_pressed_wrapper)
-		print("[EavesdropScene] Connected start_btn")
+		start_btn.pressed.connect(_on_start_button_pressed)
 	else:
-		push_error("[EavesdropScene] start_btn is null!")
+		printerr("[EavesdropScene] start_btn not found!")
 
 	# 初始化对食面板
 	if is_instance_valid(duo_panel):
 		duo_panel.hide()
-		print("[EavesdropScene] Hidden duo_panel")
+		print("[EavesdropScene] duo_panel initialized and hidden")
 	else:
-		push_error("[EavesdropScene] duo_panel is null!")
+		printerr("[EavesdropScene] duo_panel not found!")
+	
+	# 初始化搭档提示
+	if is_instance_valid(duo_hint_label):
+		duo_hint_label.show()
+		print("[EavesdropScene] duo_hint_label initialized and shown")
+	else:
+		printerr("[EavesdropScene] duo_hint_label not found!")
 
 	# 初始化场景卡片
 	if is_instance_valid(grid_container):
-		print("[EavesdropScene] grid_container is valid, creating cards")
+		print("[EavesdropScene] Creating scene cards...")
 		for scene_key in EavesdropManager.SCENE_CONFIGS.keys():
 			var config = EavesdropManager.SCENE_CONFIGS[scene_key]
-			print("[EavesdropScene] Creating card for: %s = %s" % [scene_key, config.get("name", "unknown")])
 			var card = _create_scene_card(scene_key, config)
 			grid_container.add_child(card)
-			print("[EavesdropScene] Added card: %s" % scene_key)
-		print("[EavesdropScene] Added all cards to grid_container")
+			print("[EavesdropScene] Created card for: %s" % scene_key)
 	else:
-		push_error("[EavesdropScene] grid_container is null!")
-
-	print("[EavesdropScene] _setup_ui() completed")
+		printerr("[EavesdropScene] grid_container not found!")
 
 func _setup_timers():
 	# 创建定时器，每 10 秒刷新一次人数
 	_refresh_timer = Timer.new()
 	_refresh_timer.wait_time = 10.0
-	_refresh_timer.timeout.connect(_refresh_scenes)
+	# Godot 4 中，timeout 信号可以连接 async 函数
+	_refresh_timer.timeout.connect(_on_refresh_timer_timeout)
 	_refresh_timer.autostart = true
 	add_child(_refresh_timer)
+
+func _on_refresh_timer_timeout():
+	# 定时器刷新（不阻塞 UI）
+	_refresh_scenes()
 
 func _create_scene_card(key: String, config: Dictionary) -> PanelContainer:
 	var card = PanelContainer.new()
@@ -186,17 +189,29 @@ func _get_stars(min_val: int, max_val: int) -> String:
 	return stars
 
 func _refresh_scenes():
+	print("[EavesdropScene] _refresh_scenes called")
+	
 	# 检查场景是否仍然有效
 	if not is_instance_valid(self) or not is_instance_valid(grid_container):
+		print("[EavesdropScene] _refresh_scenes: self or grid_container invalid")
 		return
 
+	print("[EavesdropScene] _refresh_scenes: current_game_id=", GameState.current_game_id)
+	
 	for card in grid_container.get_children():
 		var scene_key = card.name
-		var count = await EavesdropManager.get_scene_listener_count(GameState.current_game_id, scene_key)
-		var count_label = card.get_node_or_null("VBox/CountLabel")
-
+		# 直接通过 get_node 查找，不使用 get_node_or_null
+		var count_label = card.get_node("VBox/CountLabel")
+		
 		if not is_instance_valid(count_label):
+			print("[EavesdropScene] CountLabel not found for card: ", scene_key, ", children: ", card.get_children())
 			continue
+			
+		# 先显示加载中
+		count_label.text = "加载中..."
+		
+		var count = await EavesdropManager.get_scene_listener_count(GameState.current_game_id, scene_key)
+		print("[EavesdropScene] Scene ", scene_key, " count: ", count)
 
 		var count_text = "当前人数：%d/5" % count
 		if count >= 5:
@@ -215,28 +230,55 @@ func _refresh_scenes():
 		count_label.text = count_text
 
 func _check_partner_relationship():
+	print("[EavesdropScene] _check_partner_relationship called")
+	print("[EavesdropScene] duo_panel valid: ", is_instance_valid(duo_panel))
+	print("[EavesdropScene] partner_label valid: ", is_instance_valid(partner_label))
+	print("[EavesdropScene] partner_scene_option valid: ", is_instance_valid(partner_scene_option))
+	
 	# 检查节点是否有效
 	if not is_instance_valid(duo_panel) or not is_instance_valid(partner_label) or not is_instance_valid(partner_scene_option):
+		print("[EavesdropScene] duo_panel or partner controls invalid")
+		print("[EavesdropScene] duo_panel: ", duo_panel)
+		print("[EavesdropScene] partner_label: ", partner_label)
+		print("[EavesdropScene] partner_scene_option: ", partner_scene_option)
 		return
 
 	# 查询对食关系
 	var player_uid = PlayerState.uid
-	var endpoint = "/rest/v1/servant_relationships?or=(servant_a=eq.%s,servant_b=eq.%s)&relation_type=eq.duo_shi&select=*" % [player_uid, player_uid]
+	print("[EavesdropScene] Checking partner relationship for player: ", player_uid)
+	
+	# 使用 maid_relationships 表查询
+	var endpoint = "/rest/v1/maid_relationships?or=(player_a_uid=eq.%s,player_b_uid=eq.%s)&relation_type=eq.dui_shi&status=eq.active&select=*" % [player_uid, player_uid]
+	print("[EavesdropScene] Query endpoint: ", endpoint)
 	var res = await SupabaseManager.db_get(endpoint)
+	
+	print("[EavesdropScene] Partner query result: code=", res.get("code", "N/A"), ", data=", res.get("data", "N/A"))
 
 	if res["code"] == 200 and not res["data"].is_empty():
 		var rel = res["data"][0]
-		partner_uid = rel["servant_b"] if rel["servant_a"] == player_uid else rel["servant_a"]
+		partner_uid = rel["player_b_uid"] if rel["player_a_uid"] == player_uid else rel["player_a_uid"]
+		print("[EavesdropScene] Found partner UID: ", partner_uid)
 
 		# 获取搭档名称
-		var p_res = await SupabaseManager.db_get("/rest/v1/players?uid=eq.%s&select=character_name" % partner_uid)
+		var p_res = await SupabaseManager.db_get("/rest/v1/players?id=eq.%s&select=character_name" % partner_uid)
 		if p_res["code"] == 200 and not p_res["data"].is_empty():
 			partner_name = p_res["data"][0]["character_name"]
 			partner_label.text = "搭档：%s" % partner_name
 			duo_panel.show()
+			if is_instance_valid(duo_hint_label):
+				duo_hint_label.hide()
 			_setup_partner_options()
+			print("[EavesdropScene] Partner found: ", partner_name)
+		else:
+			print("[EavesdropScene] Failed to get partner name: code=", p_res.get("code", "N/A"))
+			if is_instance_valid(duo_hint_label):
+				duo_hint_label.show()
 	else:
+		print("[EavesdropScene] No partner found or query failed")
 		duo_panel.hide()
+		# 显示提示
+		if is_instance_valid(duo_hint_label):
+			duo_hint_label.show()
 
 func _setup_partner_options():
 	partner_scene_option.clear()
@@ -246,15 +288,17 @@ func _setup_partner_options():
 		partner_scene_option.set_item_metadata(partner_scene_option.get_item_count() - 1, scene_key)
 
 func _on_scene_selected(key: String, btn: Button):
+	print("[EavesdropScene] _on_scene_selected: ", key)
 	selected_scene = key
-	
+
 	# 取消其他卡片的选中状态
 	for card in grid_container.get_children():
 		var other_btn = card.get_node_or_null("VBox/SelectButton")
 		if other_btn and other_btn != btn:
 			other_btn.button_pressed = false
-	
+
 	selected_scene_btn = btn
+	print("[EavesdropScene] Scene selected, btn pressed: ", btn.button_pressed)
 
 func _on_duration_changed(_value):
 	# 异步更新精力显示
@@ -264,72 +308,77 @@ func _update_stamina_display_async():
 	var cost = EavesdropManager.COST_STAMINA
 	# 直接使用 PlayerState 的精力值，而不是查询数据库
 	var current = PlayerState.stamina
-	stamina_label.text = "当前精力：%d/%d | 消耗：%d" % [current, PlayerState.stamina_max, cost]
+	# 简化显示，避免文字过长
+	stamina_label.text = "精力：%d/%d  消耗：%d" % [current, PlayerState.stamina_max, cost]
 
 	if current < cost:
 		stamina_label.add_theme_color_override("font_color", Color.RED)
-		start_btn.disabled = true
-		start_btn.text = "精力不足"
+		if is_instance_valid(start_btn):
+			start_btn.disabled = true
+			start_btn.text = "精力不足"
 	else:
 		stamina_label.remove_theme_color_override("font_color")
-		start_btn.disabled = false
-		start_btn.text = "开始挂机"
+		if is_instance_valid(start_btn):
+			start_btn.disabled = false
+			start_btn.text = "开始挂机"
 
 func _on_start_pressed():
 	print("[EavesdropScene] _on_start_pressed called")
-	print("[EavesdropScene] selected_scene=%s, duration_spin=%s" % [selected_scene, duration_spin.value if duration_spin else "null"])
-
+	
 	if selected_scene == "":
-		print("[EavesdropScene] No scene selected, showing error")
+		print("[EavesdropScene] No scene selected")
 		_show_error("请先选择一个监听场景")
 		return
 
-	if not is_instance_valid(duration_spin):
-		print("[EavesdropScene] duration_spin is invalid")
-		_show_error("界面未完全加载，请重试")
-		return
+	# 检查 duration_spin 是否有效，如果无效使用默认值
+	var duration = 1
+	if is_instance_valid(duration_spin):
+		duration = int(duration_spin.value)
+		print("[EavesdropScene] duration_spin value: ", duration)
+	else:
+		print("[EavesdropScene] duration_spin is invalid, using default duration=1")
 
-	var duration = int(duration_spin.value)
 	var p_scene = ""
 
-	if duo_panel.visible and partner_uid != "":
-		var idx = partner_scene_option.selected
-		if idx >= 0:
-			p_scene = partner_scene_option.get_item_metadata(idx)
-
-	print("[EavesdropScene] Starting eavesdrop: scene=%s, duration=%d, partner=%s" % [selected_scene, duration, partner_uid])
+	if is_instance_valid(duo_panel) and duo_panel.visible and partner_uid != "":
+		if is_instance_valid(partner_scene_option):
+			var idx = partner_scene_option.selected
+			if idx >= 0:
+				p_scene = partner_scene_option.get_item_metadata(idx)
+				print("[EavesdropScene] Partner scene: ", p_scene)
 
 	# 检查精力
 	if PlayerState.stamina < EavesdropManager.COST_STAMINA:
+		print("[EavesdropScene] Not enough stamina: ", PlayerState.stamina, " < ", EavesdropManager.COST_STAMINA)
 		_show_error("精力不足，需要 %d 点" % EavesdropManager.COST_STAMINA)
 		return
 
+	print("[EavesdropScene] Starting eavesdrop: scene=", selected_scene, ", duration=", duration, ", partner=", (partner_uid if partner_uid != "" else "none"))
 	start_btn.disabled = true
 	start_btn.text = "请求中..."
 
 	var success = await EavesdropManager.start_eavesdrop(PlayerState.uid, selected_scene, duration, partner_uid)
 
-	print("[EavesdropScene] start_eavesdrop returned: success=%s" % str(success))
-
 	if success:
 		if partner_uid != "" and p_scene != "":
-			# 搭档挂机（异步，不等待结果）
 			EavesdropManager.start_eavesdrop(partner_uid, p_scene, duration, PlayerState.uid)
 
 		_show_info("挂机任务已开始，预计 %d 小时后完成" % duration)
 		eavesdrop_started.emit(true)
 
-		# 延迟后返回
+		# 延迟后返回，使用 call_deferred 避免场景切换问题
 		await get_tree().create_timer(1.5).timeout
-		_on_back_btn_pressed()
+		if is_instance_valid(self):
+			get_tree().change_scene_to_file.call_deferred("res://scenes/Hub.tscn")
 	else:
 		_show_error("开始挂机失败，请检查精力或网络")
 		start_btn.disabled = false
 		start_btn.text = "开始挂机"
 
-# 包装函数，用于信号连接
-func _on_start_pressed_wrapper():
-	# 直接调用，不使用 call_deferred
+# 包装函数，用于信号连接 - Godot 4 中信号连接的 async 函数需要这样处理
+func _on_start_button_pressed():
+	print("[EavesdropScene] _on_start_button_pressed called")
+	print("[EavesdropScene] duration_spin valid: ", is_instance_valid(duration_spin), ", selected_scene: ", selected_scene)
 	await _on_start_pressed()
 
 func _show_error(msg: String):
@@ -342,9 +391,10 @@ func _show_info(msg: String):
 
 func _on_back_btn_pressed():
 	print("[EavesdropScene] _on_back_btn_pressed called")
-	if not is_instance_valid(get_tree()):
+	var tree = get_tree()
+	if not tree or not is_instance_valid(tree):
 		return
-	var err = get_tree().change_scene_to_file("res://scenes/Hub.tscn")
+	var err = tree.change_scene_to_file("res://scenes/Hub.tscn")
 	if err != OK:
 		push_error("[EavesdropScene] Failed to change scene: %d" % err)
 
