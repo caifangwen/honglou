@@ -6,7 +6,6 @@ extends Node
 
 func _ready() -> void:
 	print("=== [Main] _ready() called ===")
-	print("[Main] Scene path: ", get_tree().current_scene.get_path())
 	
 	# 1. 仅在调试模式下添加调试时间面板
 	if OS.is_debug_build():
@@ -19,15 +18,29 @@ func _ready() -> void:
 	# 默认从登录开始
 	call_deferred("_go_to_login")
 
+func _input(event: InputEvent) -> void:
+	if OS.is_debug_build() and event.is_action_pressed("ui_f12") or (event is InputEventKey and event.pressed and event.keycode == KEY_F12):
+		var debug_panel = get_node_or_null("DebugLayer/DebugTimePanel")
+		if debug_panel:
+			var panel_node = debug_panel.get_node("Panel")
+			if panel_node:
+				panel_node.visible = !panel_node.visible
+				if panel_node.visible:
+					# 每次显示时尝试同步一次数据
+					if debug_panel.has_method("_on_speed_changed"):
+						debug_panel._on_speed_changed(GameTime.debug_speed_multiplier)
+				print("[Main] DebugTimePanel visibility toggled: ", panel_node.visible)
+
 func _setup_debug_time_panel() -> void:
 	var debug_scene = load("res://scenes/debug/DebugTimePanel.tscn")
 	if debug_scene:
 		var debug_panel = debug_scene.instantiate()
 		var canvas = CanvasLayer.new()
-		canvas.layer = 100 # 置于最顶层
+		canvas.name = "DebugLayer"
+		canvas.layer = 128 # 置于最顶层
 		canvas.add_child(debug_panel)
 		add_child(canvas)
-		print("[Main] 调试时间面板已集成")
+		print("[Main] 调试时间面板已集成，按 F12 切换显示")
 
 func _go_to_login() -> void:
 	get_tree().change_scene_to_file("res://scenes/main/Login.tscn")

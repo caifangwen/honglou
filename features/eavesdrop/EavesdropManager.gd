@@ -9,7 +9,8 @@ signal session_started(session_id: String)
 signal session_completed(session_id: String, intel_count: int)
 signal intel_received(content: String, value_level: int)
 
-const COST_STAMINA: int = 2
+# 精力消耗（统一引用 GameConfig 常量）
+const COST_STAMINA: int = GameConfig.COST_SEARCH_GARDEN
 const DUO_BONUS_RATE: float = 0.2
 const DUO_EXTRA_FRAGMENT: int = 1
 
@@ -49,6 +50,20 @@ const SCENE_CONFIGS: Dictionary = {
 		"base_rate": 0.2,
 		"value_range": [5, 5],
 		"description": "可探听贾母对各位丫鬟的评价，极为稀有"
+	},
+	"remote_rockery": {
+		"name": "偏僻假山",
+		"intel_type": ["dui_shi", "private_action"],
+		"base_rate": 0.5,
+		"value_range": [3, 5],
+		"description": "怪石嶙峋，偏僻幽静，是幽会和密谈的好地方"
+	},
+	"empty_room": {
+		"name": "空置厢房",
+		"intel_type": ["dui_shi", "gift_record"],
+		"base_rate": 0.45,
+		"value_range": [3, 4],
+		"description": "无人打理的空房，时常有人在此私下会面"
 	}
 }
 
@@ -342,6 +357,11 @@ func _generate_fallback_intel(intel_type: String, scene_key: String) -> String:
 		"elder_favor": [
 			"老太太今儿个心情好，夸了两个人。",
 			"听说老太太对某个丫鬟颇为满意。"
+		],
+		"dui_shi": [
+			"听见那偏僻处有些奇怪的动静，像是在幽会。",
+			"有人在私下议论，说是哪两个小丫鬟在结对食。",
+			"瞧见两个影子在假山后头，神神秘秘的。"
 		]
 	}
 

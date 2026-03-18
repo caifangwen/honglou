@@ -394,18 +394,21 @@ func _on_debug_stamina_confirm():
 	_add_debug_stamina()
 
 func _add_debug_stamina():
-	PlayerState.stamina = min(PlayerState.stamina + 3, PlayerState.stamina_max)
-	# 不需要手动设置 last_stamina_refresh，setter 已经处理了
-	
+	# 调试模式：直接增加基础精力，并更新刷新时间
+	var current := PlayerState.get_current_stamina()
+	PlayerState.stamina = min(current + 3, PlayerState.stamina_max)
+	PlayerState.last_stamina_refresh = int(Time.get_unix_time_from_system())
+	PlayerState.stamina_changed.emit(PlayerState.stamina)
+
 	print("[EavesdropScene] 调试：精力已设置为 %d/%d" % [PlayerState.stamina, PlayerState.stamina_max])
-	
+
 	# 同步到数据库，使其他场景可见
 	await PlayerState.sync_to_db()
-	
+
 	# 更新显示
 	_update_stamina_display_async()
-	
-	_show_info("精力已补充 3 点，当前：%d/%d (已同步至云端)" % [PlayerState.stamina, PlayerState.stamina_max])
+
+	_show_info("精力已补充 3 点，当前：%d/%d (已同步至云端)" % [PlayerState.get_current_stamina(), PlayerState.stamina_max])
 
 func _on_start_pressed():
 	print("[EavesdropScene] _on_start_pressed called")

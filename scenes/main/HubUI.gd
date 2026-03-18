@@ -36,6 +36,10 @@ func _ready() -> void:
 	_connect_button("NavigationPanel/NavigationVBox/Row3/EavesdropHubBtn", _on_EavesdropHubBtn_pressed)
 	_connect_button("NavigationPanel/NavigationVBox/Row3/EavesdropBtn", _on_EavesdropBtn_pressed)
 	
+	# 仅在调试模式下添加调试按钮
+	if OS.is_debug_build():
+		_add_debug_nav_button()
+	
 	_init_top_bar()
 	_init_player_info()
 	GameState.deficit_changed.connect(_on_deficit_changed)
@@ -104,6 +108,17 @@ func _on_stamina_changed(_new_value: int) -> void:
 func _update_stamina_display() -> void:
 	if is_instance_valid(stamina_label):
 		stamina_label.text = "精力：%d/%d" % [PlayerState.get_current_stamina(), PlayerState.stamina_max]
+
+func _add_debug_nav_button() -> void:
+	var row3 = get_node_or_null("NavigationPanel/NavigationVBox/Row3")
+	if row3:
+		var debug_btn = Button.new()
+		debug_btn.name = "DebugPanelBtn"
+		debug_btn.text = "🛠️ 全局调试"
+		debug_btn.tooltip_text = "进入全局数值/事件调试面板"
+		debug_btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/debug/DebugPanelUI.tscn"))
+		row3.add_child(debug_btn)
+		print("[HubUI] Added DebugPanelBtn to Row3")
 
 # === 导航按钮回调 ===
 

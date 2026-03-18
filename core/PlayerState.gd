@@ -18,8 +18,6 @@ var stamina: int = 6:
 	set(val):
 		if stamina != val:
 			stamina = val
-			# 更新基础值时重置刷新时间，以当前时间为准
-			last_stamina_refresh = int(Time.get_unix_time_from_system())
 			stamina_changed.emit(stamina)
 var stamina_max: int = 6
 var qi_shu: int = GameConfig.INIT_QI_SHU:
@@ -104,9 +102,13 @@ func get_current_stamina() -> int:
 func consume_stamina(amount: int) -> bool:
 	var current: int = get_current_stamina()
 	if current < amount:
+		print("[PlayerState] 精力不足：当前=%d, 需要=%d" % [current, amount])
 		return false
-	# 设置 stamina 会触发 setter 自动更新 last_stamina_refresh 和发出信号
+	# 直接设置基础精力值（不触发刷新时间重置）
 	stamina = current - amount
+	# 更新刷新时间为当前时间，避免重复恢复
+	last_stamina_refresh = int(Time.get_unix_time_from_system())
+	print("[PlayerState] 精力扣除成功：扣除=%d, 剩余基础精力=%d" % [amount, stamina])
 	# 消耗精力后同步到数据库
 	sync_to_db()
 	return true

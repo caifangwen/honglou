@@ -12,7 +12,8 @@ signal back_pressed()
 @onready var stamina_label = $VBoxContainer/StaminaLabel
 @onready var info_label = $VBoxContainer/InfoLabel
 
-const COST_STAMINA = 5  # 拦截消耗 5 点精力
+# 拦截精力消耗（统一引用 GameConfig 常量，拦截为高消耗行动）
+const COST_STAMINA = GameConfig.COST_BLOCK_INFO
 
 var _available_targets: Array = []
 

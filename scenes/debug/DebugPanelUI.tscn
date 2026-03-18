@@ -1,0 +1,74 @@
+[gd_scene format=3 uid="uid://cdjl8p06bgr2n"]
+
+[ext_resource type="Script" path="res://scenes/debug/DebugPanelUI.gd" id="1_gd"]
+
+[node name="DebugPanelUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_gd")
+
+[node name="MainLayout" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LeftPanel" type="Panel" parent="MainLayout"]
+custom_minimum_size = Vector2(600, 0)
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainLayout/LeftPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Content" type="VBoxContainer" parent="MainLayout/LeftPanel/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 15
+
+[node name="RightPanel" type="VBoxContainer" parent="MainLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TopBar" type="HBoxContainer" parent="MainLayout/RightPanel"]
+layout_mode = 2
+
+[node name="BackBtn" type="Button" parent="MainLayout/RightPanel/TopBar"]
+layout_mode = 2
+text = " 返回主界面 "
+
+[node name="Title" type="Label" parent="MainLayout/RightPanel/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "系统运行日志"
+horizontal_alignment = 1
+
+[node name="StatusContainer" type="VBoxContainer" parent="MainLayout/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 0.3
+
+[node name="LogContainer" type="PanelContainer" parent="MainLayout/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LogText" type="RichTextLabel" parent="MainLayout/RightPanel/LogContainer"]
+layout_mode = 2
+bbcode_enabled = true
+scroll_following = true
+
+[connection signal="pressed" from="MainLayout/RightPanel/TopBar/BackBtn" to="." method="_on_BackBtn_pressed"]

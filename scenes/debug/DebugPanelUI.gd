@@ -1,4 +1,4 @@
-extends Control
+﻿extends Control
 
 # 《大观园》管家系统 · 测试调试面板
 # 实现资源调试、月例发放、批条行动、查账、投票、路线检测及事件触发
@@ -75,7 +75,7 @@ func _create_header(title: String):
 func _create_jump_to_treasury():
 	var btn = Button.new()
 	btn.text = "🏛️ 进入银库场景"
-	btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/Treasury.tscn"))
+	btn.pressed.connect(func(): get_tree().change_scene_to_file("res://features/treasury/Treasury.tscn"))
 	content_vbox.add_child(btn)
 
 func _log(msg: String, type: String = "INFO"):
@@ -109,7 +109,7 @@ func _setup_resource_debug():
 func _get_val(var_name: String):
 	match var_name:
 		"public_silver": return GameState.total_silver
-		"stamina": return PlayerState.stamina
+		"stamina": return PlayerState.get_current_stamina()
 		"prestige": return PlayerState.prestige
 		"deficit_rate": return GameState.deficit_value
 		"internal_conflict": return GameState.internal_conflict
@@ -121,11 +121,32 @@ func _set_val(var_name: String, val: float):
 		"public_silver": 
 			GameState.total_silver = int(val)
 			GameState.total_silver_changed.emit(GameState.total_silver)
-		"stamina": PlayerState.stamina = int(val)
-		"prestige": PlayerState.prestige = int(val)
-		"deficit_rate": GameState.deficit_value = val
-		"internal_conflict": GameState.internal_conflict = val
-		"private_silver": PlayerState.silver = int(val)
+			_sync_game_state_to_db({"total_silver": int(val)})
+		"stamina": 
+			PlayerState.stamina = int(val)
+			PlayerState.sync_to_db()
+		"prestige": 
+			PlayerState.prestige = int(val)
+			PlayerState.sync_to_db()
+		"deficit_rate": 
+			GameState.deficit_value = val
+			GameState.deficit_changed.emit(val)
+			_sync_game_state_to_db({"deficit_value": val})
+		"internal_conflict": 
+			GameState.internal_conflict = val
+			GameState.conflict_changed.emit(val)
+			_sync_game_state_to_db({"conflict_value": val})
+		"private_silver": 
+			PlayerState.silver = int(val)
+			PlayerState.sync_to_db()
+
+func _sync_game_state_to_db(data: Dictionary):
+	if GameState.current_game_id != "" and GameState.current_game_id != "00000000-0000-0000-0000-000000000000":
+		SupabaseManager.db_update("games", "id=eq." + GameState.current_game_id, data)
+
+func _sync_player_state_to_db(data: Dictionary):
+	if PlayerState.player_db_id != "":
+		SupabaseManager.db_update("players", "id=eq." + PlayerState.player_db_id, data)
 
 func _add_resource_row(parent: Control, label_text: String, var_name: String, delta: int, reset_val: float):
 	var btn_plus = Button.new()
@@ -365,14 +386,15 @@ func _refresh_allowance_info():
 		warning.visible = (deduction_count >= 3)
 
 # --- 批条行动区 ---
+# 精力消耗统一引用 GameConfig 常量
 
 var actions = [
-	{"name": "🛒 采办物资", "cost": 1, "target": "随机玩家"},
-	{"name": "📋 差使分派", "cost": 1, "target": "选择玩家"},
-	{"name": "🔍 搜检大观园", "cost": 2, "target": "5-10人随机"},
-	{"name": "📜 预支批条", "cost": 1, "target": "选择玩家"},
-	{"name": "🤫 平息流言", "cost": 2, "target": "选择流言"},
-	{"name": "🔒 封锁消息", "cost": 3, "target": "选择情报"}
+	{"name": "🛒 采办物资", "cost": GameConfig.COST_PROCURE, "target": "随机玩家"},
+	{"name": "📋 差使分派", "cost": GameConfig.COST_ASSIGN_TASK, "target": "选择玩家"},
+	{"name": "🔍 搜检大观园", "cost": GameConfig.COST_SEARCH_GARDEN, "target": "5-10人随机"},
+	{"name": "📜 预支批条", "cost": GameConfig.COST_ADVANCE_PAYMENT, "target": "选择玩家"},
+	{"name": "🤫 平息流言", "cost": GameConfig.COST_SUPPRESS_RUMOR, "target": "选择流言"},
+	{"name": "🔒 封锁消息", "cost": GameConfig.COST_BLOCK_INFO, "target": "选择情报"}
 ]
 
 func _setup_action_area():
@@ -1001,3 +1023,4 @@ func _on_event_liulaolao():
 	_log("触发：刘姥姥进大观园 -> 消耗公中银50，内耗值-8", "RESOURCE")
 	_refresh_resource_labels()
 	_update_route_conditions()
+

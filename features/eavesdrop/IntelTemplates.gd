@@ -29,6 +29,11 @@ var templates = {
 		"贾母近日频频夸赞{target_name}，赏赐{gift}，似有重用之意。",
 		"老太太在宴会上特意让{target_name}坐在身边，还赏了{gift}。",
 		"听说贾母私下对{target_name}说，日后要委以重任。"
+	],
+	"dui_shi": [
+		"有人瞧见{source_name}与{partner_name}在假山后头私语，举止甚是亲密。",
+		"听闻{source_name}与{partner_name}私下结了对食，还交换了信物。",
+		"在那偏僻处，撞见了{source_name}和{partner_name}，两人神色慌张，似乎在幽会。"
 	]
 }
 
@@ -71,6 +76,11 @@ func generate_fallback_intel(type: String, scene_key: String) -> String:
 			"老太太今儿个心情好，夸了两个人。",
 			"听说老太太对某个丫鬟颇为满意。",
 			"贾母房里的丫鬟说，老太太最近常提起某个人。"
+		],
+		"dui_shi": [
+			"听见那偏僻处有些奇怪的动静，像是在幽会。",
+			"有人在私下议论，说是哪两个小丫鬟在结对食。",
+			"瞧见两个影子在假山后头，神神秘秘的。"
 		]
 	}
 	

@@ -1,7 +1,7 @@
 -- ============================================================
--- 《红楼回忆志》数据库架构文件
--- 版本：2026-03-17
--- 使用方法：在 Supabase SQL Editor 中执行
+-- 《红楼回忆志》完整数据库架构文件
+-- 版本：2026-03-18
+-- 使用方法：在 Supabase SQL Editor 或本地 PostgreSQL 中执行
 -- ============================================================
 
 -- ============================================================
@@ -62,14 +62,14 @@ BEGIN
     -- 情报类型
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'intel_type') THEN
         CREATE TYPE intel_type AS ENUM (
-            'account_leak', 'private_action', 'gift_record', 'visitor_info', 'elder_favor'
+            'account_leak', 'private_action', 'gift_record', 'visitor_info', 'elder_favor', 'dui_shi'
         );
     END IF;
 
     -- 场景地点
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'scene_location') THEN
         CREATE TYPE scene_location AS ENUM (
-            'yi_hong_yuan', 'treasury_back', 'bridge', 'gate', 'elder_room'
+            'yi_hong_yuan', 'treasury_back', 'bridge', 'gate', 'elder_room', 'remote_rockery', 'empty_room'
         );
     END IF;
 
@@ -315,6 +315,9 @@ CREATE TABLE IF NOT EXISTS public.intel_fragments (
     status text DEFAULT 'unread' CHECK (status IN ('unread', 'read', 'used')),
     is_used boolean DEFAULT FALSE,
     is_sold boolean DEFAULT FALSE,
+    is_blocked boolean DEFAULT false,
+    blocked_until timestamptz,
+    blocked_by uuid REFERENCES public.players(id),
     obtained_at timestamptz DEFAULT now(),
     expires_at timestamptz DEFAULT (now() + INTERVAL '48 hours'),
     created_at timestamptz DEFAULT now()
@@ -409,19 +412,34 @@ CREATE INDEX IF NOT EXISTS idx_intel_fragments_scene ON public.intel_fragments(s
 CREATE INDEX IF NOT EXISTS idx_intel_intercepts_target ON public.intel_intercepts(target_uid, status, ends_at);
 CREATE INDEX IF NOT EXISTS idx_intel_intercepts_game ON public.intel_intercepts(game_id, status);
 
+-- procurement_tickets 索引
+CREATE INDEX IF NOT EXISTS idx_procurement_tickets_game ON public.procurement_tickets(game_id);
+CREATE INDEX IF NOT EXISTS idx_procurement_tickets_steward ON public.procurement_tickets(steward_uid);
+
 -- ============================================================
--- SECTION 9: 辅助函数（听壁脚系统）
+-- SECTION 7: 辅助函数
 -- ============================================================
 
--- 获取当前玩家 ID
+-- 获取当前玩家 ID（本地/云端兼容）
 CREATE OR REPLACE FUNCTION public.get_my_player_id()
 RETURNS uuid AS $$
+DECLARE
+    v_player_id uuid;
 BEGIN
-    RETURN (
-        SELECT id FROM public.players
+    -- 尝试从 auth.uid() 获取
+    BEGIN
+        SELECT id INTO v_player_id FROM public.players
         WHERE auth_uid = auth.uid()
-        LIMIT 1
-    );
+        LIMIT 1;
+    EXCEPTION WHEN OTHERS THEN
+        -- 本地环境：返回第一个管家玩家
+        SELECT id INTO v_player_id FROM public.players
+        WHERE role_class = 'steward'
+        ORDER BY updated_at DESC
+        LIMIT 1;
+    END;
+    
+    RETURN v_player_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -435,11 +453,11 @@ BEGIN
     SELECT ends_at INTO v_ends_at
     FROM public.eavesdrop_sessions
     WHERE id = p_session_id;
-    
+
     IF NOT FOUND THEN
         RETURN 0;
     END IF;
-    
+
     v_remaining := EXTRACT(EPOCH FROM (v_ends_at - NOW()))::integer;
     RETURN GREATEST(0, v_remaining);
 END;
@@ -486,75 +504,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
--- SECTION 8: RLS 策略
--- ============================================================
-
--- 启用 RLS
-ALTER TABLE public.eavesdrop_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.intel_fragments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.intel_trades ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.intel_intercepts ENABLE ROW LEVEL SECURITY;
-
--- eavesdrop_sessions 策略
-DROP POLICY IF EXISTS "authenticated_select_eavesdrop_sessions" ON public.eavesdrop_sessions;
-DROP POLICY IF EXISTS "authenticated_insert_eavesdrop_sessions" ON public.eavesdrop_sessions;
-DROP POLICY IF EXISTS "authenticated_update_eavesdrop_sessions" ON public.eavesdrop_sessions;
-
-CREATE POLICY "authenticated_select_eavesdrop_sessions" ON public.eavesdrop_sessions
-    FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated_insert_eavesdrop_sessions" ON public.eavesdrop_sessions
-    FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "authenticated_update_eavesdrop_sessions" ON public.eavesdrop_sessions
-    FOR UPDATE TO authenticated USING (true);
-
--- intel_fragments 策略
-DROP POLICY IF EXISTS "authenticated_select_intel_fragments" ON public.intel_fragments;
-DROP POLICY IF EXISTS "authenticated_insert_intel_fragments" ON public.intel_fragments;
-DROP POLICY IF EXISTS "authenticated_update_intel_fragments" ON public.intel_fragments;
-
-CREATE POLICY "authenticated_select_intel_fragments" ON public.intel_fragments
-    FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated_insert_intel_fragments" ON public.intel_fragments
-    FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "authenticated_update_intel_fragments" ON public.intel_fragments
-    FOR UPDATE TO authenticated USING (true);
-
--- intel_trades 策略
-DROP POLICY IF EXISTS "authenticated_select_intel_trades" ON public.intel_trades;
-DROP POLICY IF EXISTS "authenticated_insert_intel_trades" ON public.intel_trades;
-DROP POLICY IF EXISTS "authenticated_update_intel_trades" ON public.intel_trades;
-
-CREATE POLICY "authenticated_select_intel_trades" ON public.intel_trades
-    FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated_insert_intel_trades" ON public.intel_trades
-    FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "authenticated_update_intel_trades" ON public.intel_trades
-    FOR UPDATE TO authenticated USING (true);
-
--- intel_intercepts 策略
-DROP POLICY IF EXISTS "authenticated_select_intel_intercepts" ON public.intel_intercepts;
-DROP POLICY IF EXISTS "authenticated_insert_intel_intercepts" ON public.intel_intercepts;
-DROP POLICY IF EXISTS "authenticated_update_intel_intercepts" ON public.intel_intercepts;
-
-CREATE POLICY "authenticated_select_intel_intercepts" ON public.intel_intercepts
-    FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated_insert_intel_intercepts" ON public.intel_intercepts
-    FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "authenticated_update_intel_intercepts" ON public.intel_intercepts
-    FOR UPDATE TO authenticated USING (true);
-
--- ============================================================
--- SECTION 9: 权限授予
--- ============================================================
-
-GRANT EXECUTE ON FUNCTION public.get_my_player_id TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_session_remaining_time TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_player_active_session_count TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_scene_listener_count TO authenticated;
-GRANT EXECUTE ON FUNCTION public.is_player_intercepted TO authenticated;
-
--- ============================================================
--- SECTION 10: 精力系统 RPC 函数
+-- SECTION 8: 精力系统 RPC 函数
 -- ============================================================
 
 -- 管家身份校验 + 精力结算 & 扣减
@@ -570,11 +520,21 @@ DECLARE
     v_now timestamptz;
     v_recovered int;
     v_interval_seconds int := 7200;
+    v_current_user_id uuid;
 BEGIN
+    -- 本地兼容：尝试从 auth.uid() 或 current_setting 获取用户 ID
+    BEGIN
+        v_current_user_id := auth.uid();
+    EXCEPTION WHEN OTHERS THEN
+        -- 本地环境：使用第一个管家玩家作为测试
+        SELECT id INTO v_current_user_id FROM public.players WHERE role_class = 'steward' LIMIT 1;
+    END;
+
+    -- 基于当前用户获取玩家
     SELECT id, role_class, current_game_id, stamina, stamina_max, stamina_refreshed_at
     INTO v_player_id, v_role, v_game_id, v_stamina, v_max, v_last
     FROM public.players
-    WHERE id = public.get_my_player_id();
+    WHERE id = v_current_user_id;
 
     IF v_player_id IS NULL THEN
         RAISE EXCEPTION '玩家不存在';
@@ -680,6 +640,7 @@ BEGIN
         RAISE EXCEPTION '目标玩家不能为空';
     END IF;
 
+    -- 目标玩家精力 -2（不低于 0），银两 +X
     UPDATE public.players
     SET silver = silver + COALESCE(p_silver_reward, 0),
         stamina = GREATEST(stamina - 2, 0),
@@ -687,6 +648,7 @@ BEGIN
     WHERE id = p_target_uid
     RETURNING silver, stamina INTO v_new_silver, v_new_stamina;
 
+    -- 写一条"差事"消息
     INSERT INTO public.messages (
         game_id, sender_uid, receiver_uid,
         content, message_type, stamina_cost, attachments
@@ -754,23 +716,19 @@ BEGIN
         RAISE EXCEPTION '预支金额必须为正数';
     END IF;
 
+    -- 发放银两
     UPDATE public.players
     SET silver = silver + p_amount,
         updated_at = now()
     WHERE id = p_target_uid
     RETURNING silver INTO v_new_silver;
 
+    -- 亏空 +5
     UPDATE public.games
     SET deficit_value = COALESCE(deficit_value, 0.0) + COALESCE(p_deficit_step, 5),
         updated_at = now()
     WHERE id = v_game_id
     RETURNING deficit_value INTO v_new_deficit;
-
-    INSERT INTO public.deficit_log (
-        game_id, operated_at, operated_by, delta_amount, new_deficit_percent
-    ) VALUES (
-        v_game_id, now(), v_steward_id, COALESCE(p_deficit_step, 5), v_new_deficit
-    );
 
     INSERT INTO public.action_approvals (
         game_id, steward_uid, action_type, target_id,
@@ -1026,456 +984,83 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
--- SECTION 11: 银库操作 RPC 函数
+-- SECTION 9: RLS 策略
 -- ============================================================
 
--- 修改玩家属性
-CREATE OR REPLACE FUNCTION public.modify_player_stats(
-    p_id uuid,
-    private_silver_delta int DEFAULT 0,
-    silver_delta int DEFAULT 0,
-    stamina_delta int DEFAULT 0,
-    reputation_delta int DEFAULT 0,
-    prestige_delta int DEFAULT 0,
-    loyalty_delta int DEFAULT 0
-)
-RETURNS json AS $$
-DECLARE
-    v_player record;
-    v_result json;
-BEGIN
-    SELECT * INTO v_player FROM public.players WHERE id = p_id;
-    
-    IF NOT FOUND THEN
-        RETURN json_build_object('success', false, 'error', 'Player not found');
-    END IF;
-    
-    UPDATE public.players
-    SET 
-        private_silver = GREATEST(0, private_silver + COALESCE(private_silver_delta, 0)),
-        silver = GREATEST(0, silver + COALESCE(silver_delta, 0)),
-        stamina = GREATEST(0, LEAST(stamina_max, stamina + COALESCE(stamina_delta, 0))),
-        reputation = GREATEST(0, LEAST(100, reputation + COALESCE(reputation_delta, 0))),
-        prestige = GREATEST(0, LEAST(100, prestige + COALESCE(prestige_delta, 0))),
-        loyalty = GREATEST(0, LEAST(100, loyalty + COALESCE(loyalty_delta, 0))),
-        updated_at = now()
-    WHERE id = p_id
-    RETURNING * INTO v_player;
-    
-    v_result := json_build_object(
-        'success', true,
-        'player', json_build_object(
-            'id', v_player.id,
-            'private_silver', v_player.private_silver,
-            'silver', v_player.silver,
-            'stamina', v_player.stamina,
-            'reputation', v_player.reputation,
-            'prestige', v_player.prestige,
-            'loyalty', v_player.loyalty
-        )
-    );
-    
-    RETURN v_result;
-END;
-$$ LANGUAGE plpgsql;
+-- 启用 RLS
+ALTER TABLE public.eavesdrop_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.intel_fragments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.intel_trades ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.intel_intercepts ENABLE ROW LEVEL SECURITY;
 
--- 扣除银库
-CREATE OR REPLACE FUNCTION public.decrement_treasury(
-    g_id uuid,
-    amount int
-)
-RETURNS json AS $$
-DECLARE
-    v_treasury record;
-    v_result json;
-BEGIN
-    SELECT * INTO v_treasury FROM public.treasury WHERE game_id = g_id;
-    
-    IF NOT FOUND THEN
-        RETURN json_build_object('success', false, 'error', 'Treasury not found');
-    END IF;
-    
-    IF v_treasury.total_silver < amount THEN
-        RETURN json_build_object('success', false, 'error', 'Insufficient funds in treasury');
-    END IF;
-    
-    UPDATE public.treasury
-    SET 
-        total_silver = total_silver - amount,
-        public_balance = public_balance - amount,
-        real_balance = real_balance - amount,
-        last_update = now()
-    WHERE game_id = g_id
-    RETURNING * INTO v_treasury;
-    
-    v_result := json_build_object(
-        'success', true,
-        'treasury', json_build_object(
-            'game_id', v_treasury.game_id,
-            'total_silver', v_treasury.total_silver,
-            'public_balance', v_treasury.public_balance,
-            'real_balance', v_treasury.real_balance
-        )
-    );
-    
-    RETURN v_result;
-END;
-$$ LANGUAGE plpgsql;
+-- eavesdrop_sessions 策略
+DROP POLICY IF EXISTS "authenticated_select_eavesdrop_sessions" ON public.eavesdrop_sessions;
+DROP POLICY IF EXISTS "authenticated_insert_eavesdrop_sessions" ON public.eavesdrop_sessions;
+DROP POLICY IF EXISTS "authenticated_update_eavesdrop_sessions" ON public.eavesdrop_sessions;
 
--- 发放月例（单人）
-CREATE OR REPLACE FUNCTION public.distribute_allowance_rpc(
-    p_steward_uid uuid,
-    p_recipient_uid uuid,
-    p_recipient_name text,
-    p_actual_amount int,
-    p_standard_amount int,
-    p_game_id uuid
-)
-RETURNS json AS $$
-DECLARE
-    v_treasury record;
-    v_steward_acc record;
-    v_withheld int;
-    v_ratio float;
-    v_timestamp timestamptz;
-    v_public_entry jsonb;
-    v_private_entry jsonb;
-    v_count bigint;
-    v_result json;
-BEGIN
-    SELECT * INTO v_treasury FROM public.treasury WHERE game_id = p_game_id;
-    
-    IF NOT FOUND THEN
-        RETURN json_build_object('success', false, 'error', 'Treasury not found');
-    END IF;
-    
-    IF v_treasury.total_silver < p_actual_amount THEN
-        RETURN json_build_object('success', false, 'error', 'Insufficient funds in treasury');
-    END IF;
-    
-    v_withheld := p_standard_amount - p_actual_amount;
-    v_ratio := CASE WHEN p_standard_amount > 0 THEN v_withheld::float / p_standard_amount::float ELSE 0 END;
-    
-    v_timestamp := now();
-    
-    -- 扣除银库
-    UPDATE public.treasury
-    SET 
-        total_silver = total_silver - p_actual_amount,
-        public_balance = public_balance - p_actual_amount,
-        real_balance = real_balance - p_actual_amount,
-        last_update = v_timestamp
-    WHERE game_id = p_game_id;
-    
-    -- 更新目标玩家私产
-    UPDATE public.players
-    SET 
-        private_silver = private_silver + p_actual_amount,
-        updated_at = v_timestamp
-    WHERE id = p_recipient_uid;
-    
-    -- 获取管家账户数据
-    SELECT * INTO v_steward_acc 
-    FROM public.steward_accounts 
-    WHERE steward_uid = p_steward_uid AND game_id = p_game_id;
-    
-    IF NOT FOUND THEN
-        INSERT INTO public.steward_accounts (game_id, steward_uid, public_ledger, private_ledger, private_assets)
-        VALUES (p_game_id, p_steward_uid, '[]'::jsonb, '[]'::jsonb, 0)
-        RETURNING * INTO v_steward_acc;
-    END IF;
-    
-    -- 更新明账
-    v_public_entry := jsonb_build_object(
-        'type', 'allowance',
-        'recipient_uid', p_recipient_uid,
-        'recipient_name', p_recipient_name,
-        'amount', p_actual_amount,
-        'timestamp', v_timestamp
-    );
-    
-    UPDATE public.steward_accounts
-    SET 
-        public_ledger = COALESCE(public_ledger, '[]'::jsonb) || v_public_entry,
-        updated_at = v_timestamp
-    WHERE steward_uid = p_steward_uid AND game_id = p_game_id;
-    
-    -- 更新暗账（如果有克扣）
-    IF v_withheld > 0 THEN
-        v_private_entry := jsonb_build_object(
-            'type', 'embezzlement',
-            'recipient_uid', p_recipient_uid,
-            'recipient_name', p_recipient_name,
-            'standard', p_standard_amount,
-            'actual', p_actual_amount,
-            'withheld', v_withheld,
-            'timestamp', v_timestamp
-        );
-        
-        UPDATE public.steward_accounts
-        SET 
-            private_ledger = COALESCE(private_ledger, '[]'::jsonb) || v_private_entry,
-            private_assets = private_assets + v_withheld,
-            updated_at = v_timestamp
-        WHERE steward_uid = p_steward_uid AND game_id = p_game_id;
-    END IF;
-    
-    -- 写入发放记录
-    INSERT INTO public.allowance_records (
-        game_id, issued_by, player_id, amount_public, amount_actual, withheld_amount, issued_at
-    ) VALUES (
-        p_game_id, p_steward_uid, p_recipient_uid, p_standard_amount, p_actual_amount, v_withheld, v_timestamp
-    );
-    
-    -- 插入流水记录 (ledger_entries)
-    INSERT INTO public.ledger_entries (
-        game_id, treasury_id, actor_id, target_id, ledger_type, entry_type, amount, note, created_at
-    ) VALUES (
-        p_game_id, v_treasury.game_id, p_steward_uid, p_recipient_uid, 'public', 'allocation', 
-        p_actual_amount, '发放月例：' || p_actual_amount || ' 两', v_timestamp
-    );
-    
-    IF v_withheld > 0 THEN
-        INSERT INTO public.ledger_entries (
-            game_id, treasury_id, actor_id, target_id, ledger_type, entry_type, amount, note, created_at
-        ) VALUES (
-            p_game_id, v_treasury.game_id, p_steward_uid, p_recipient_uid, 'private', 'allocation', 
-            v_withheld, '克扣月例：' || v_withheld || ' 两', v_timestamp
-        );
-    END IF;
-    
-    -- 触发告状风险检测 (本旬内克扣人数 >= 3)
-    SELECT COUNT(*) INTO v_count
-    FROM public.allowance_records
-    WHERE issued_by = p_steward_uid
-      AND game_id = p_game_id
-      AND withheld_amount > 0
-      AND created_at >= (now() - INTERVAL '10 days');
-    
-    IF v_count >= 3 THEN
-        INSERT INTO public.intel_fragments (
-            game_id, intel_type, content, source_uid, owner_uid, scene, scene_key
-        ) VALUES (
-            p_game_id, 'account_leak', 
-            '有人偶然发现账房的月例支出似乎与各房领到的数额对不上。',
-            p_steward_uid, p_steward_uid, 'treasury_back', 'treasury_back'
-        );
-    END IF;
-    
-    -- 碎片生成逻辑 (克扣比例)
-    IF v_ratio > 0 THEN
-        IF random() < (CASE WHEN v_ratio >= 0.25 THEN 0.8 WHEN v_ratio >= 0.10 THEN 0.4 ELSE 0.15 END) THEN
-            INSERT INTO public.intel_fragments (
-                game_id, intel_type, content, source_uid, owner_uid, scene, scene_key
-            ) VALUES (
-                p_game_id, 'account_leak',
-                '听闻被克扣了 ' || v_withheld || ' 两月例。',
-                p_steward_uid, p_recipient_uid, 'bridge', 'bridge'
-            );
-        END IF;
-    END IF;
-    
-    RETURN json_build_object('success', true, 'withheld', v_withheld);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+CREATE POLICY "authenticated_select_eavesdrop_sessions" ON public.eavesdrop_sessions
+    FOR SELECT TO authenticated USING (true);
+CREATE POLICY "authenticated_insert_eavesdrop_sessions" ON public.eavesdrop_sessions
+    FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "authenticated_update_eavesdrop_sessions" ON public.eavesdrop_sessions
+    FOR UPDATE TO authenticated USING (true);
 
--- 批量发放月例
-CREATE OR REPLACE FUNCTION public.bulk_distribute_allowance_rpc(
-    p_steward_uid uuid,
-    p_game_id uuid,
-    p_distributions jsonb
-)
-RETURNS json AS $$
-DECLARE
-    v_treasury record;
-    v_steward_acc record;
-    v_dist jsonb;
-    v_recipient_uid uuid;
-    v_recipient_name text;
-    v_actual_amount int;
-    v_standard_amount int;
-    v_withheld int;
-    v_total_actual int := 0;
-    v_total_withheld int := 0;
-    v_timestamp timestamptz;
-    v_public_entry jsonb;
-    v_private_entry jsonb;
-    v_public_ledger jsonb := '[]'::jsonb;
-    v_private_ledger jsonb := '[]'::jsonb;
-    v_private_assets_delta int := 0;
-    v_withheld_count int := 0;
-BEGIN
-    SELECT * INTO v_treasury FROM public.treasury WHERE game_id = p_game_id;
-    
-    IF NOT FOUND THEN
-        RETURN json_build_object('success', false, 'error', 'Treasury not found');
-    END IF;
-    
-    SELECT * INTO v_steward_acc 
-    FROM public.steward_accounts 
-    WHERE steward_uid = p_steward_uid AND game_id = p_game_id;
-    
-    IF NOT FOUND THEN
-        INSERT INTO public.steward_accounts (game_id, steward_uid, public_ledger, private_ledger, private_assets)
-        VALUES (p_game_id, p_steward_uid, '[]'::jsonb, '[]'::jsonb, 0)
-        RETURNING * INTO v_steward_acc;
-    END IF;
-    
-    v_timestamp := now();
-    
-    -- 计算总额并校验
-    FOR v_dist IN SELECT * FROM jsonb_array_elements(p_distributions)
-    LOOP
-        v_actual_amount := (v_dist->>'actual_amount')::int;
-        v_total_actual := v_total_actual + v_actual_amount;
-    END LOOP;
-    
-    IF v_treasury.total_silver < v_total_actual THEN
-        RETURN json_build_object('success', false, 'error', 'Insufficient funds in treasury');
-    END IF;
-    
-    -- 处理每一个发放
-    FOR v_dist IN SELECT * FROM jsonb_array_elements(p_distributions)
-    LOOP
-        v_recipient_uid := (v_dist->>'recipient_uid')::uuid;
-        v_recipient_name := v_dist->>'recipient_name';
-        v_actual_amount := (v_dist->>'actual_amount')::int;
-        v_standard_amount := (v_dist->>'standard_amount')::int;
-        v_withheld := v_standard_amount - v_actual_amount;
-        
-        v_total_withheld := v_total_withheld + v_withheld;
-        
-        IF v_withheld > 0 THEN
-            v_withheld_count := v_withheld_count + 1;
-        END IF;
-        
-        -- 更新玩家私产
-        UPDATE public.players
-        SET private_silver = private_silver + v_actual_amount, updated_at = v_timestamp
-        WHERE id = v_recipient_uid;
-        
-        -- 准备账本条目
-        v_public_entry := jsonb_build_object(
-            'type', 'allowance',
-            'recipient_uid', v_recipient_uid,
-            'recipient_name', v_recipient_name,
-            'amount', v_actual_amount,
-            'timestamp', v_timestamp
-        );
-        v_public_ledger := v_public_ledger || v_public_entry;
-        
-        IF v_withheld > 0 THEN
-            v_private_entry := jsonb_build_object(
-                'type', 'embezzlement',
-                'recipient_uid', v_recipient_uid,
-                'recipient_name', v_recipient_name,
-                'standard', v_standard_amount,
-                'actual', v_actual_amount,
-                'withheld', v_withheld,
-                'timestamp', v_timestamp
-            );
-            v_private_ledger := v_private_ledger || v_private_entry;
-            v_private_assets_delta := v_private_assets_delta + v_withheld;
-        END IF;
-        
-        -- 插入发放记录
-        INSERT INTO public.allowance_records (
-            game_id, issued_by, player_id, amount_public, amount_actual, withheld_amount, issued_at
-        ) VALUES (
-            p_game_id, p_steward_uid, v_recipient_uid, v_standard_amount, v_actual_amount, v_withheld, v_timestamp
-        );
-        
-        -- 插入流水记录 (ledger_entries)
-        INSERT INTO public.ledger_entries (
-            game_id, treasury_id, actor_id, target_id, ledger_type, entry_type, amount, note, created_at
-        ) VALUES (
-            p_game_id, v_treasury.game_id, p_steward_uid, v_recipient_uid, 'public', 'allocation', 
-            v_actual_amount, '发放月例：' || v_actual_amount || ' 两', v_timestamp
-        );
-        
-        IF v_withheld > 0 THEN
-            INSERT INTO public.ledger_entries (
-                game_id, treasury_id, actor_id, target_id, ledger_type, entry_type, amount, note, created_at
-            ) VALUES (
-                p_game_id, v_treasury.game_id, p_steward_uid, v_recipient_uid, 'private', 'allocation', 
-                v_withheld, '克扣月例：' || v_withheld || ' 两', v_timestamp
-            );
-        END IF;
-    END LOOP;
-    
-    -- 扣除银库
-    UPDATE public.treasury
-    SET 
-        total_silver = total_silver - v_total_actual,
-        public_balance = public_balance - v_total_actual,
-        real_balance = real_balance - v_total_actual,
-        last_update = v_timestamp
-    WHERE game_id = p_game_id;
-    
-    -- 更新管家账户
-    UPDATE public.steward_accounts
-    SET 
-        public_ledger = COALESCE(public_ledger, '[]'::jsonb) || v_public_ledger,
-        private_ledger = COALESCE(private_ledger, '[]'::jsonb) || v_private_ledger,
-        private_assets = private_assets + v_private_assets_delta,
-        updated_at = v_timestamp
-    WHERE steward_uid = p_steward_uid AND game_id = p_game_id;
-    
-    -- 风险检测：克扣人数 >= 3
-    IF v_withheld_count >= 3 THEN
-        INSERT INTO public.intel_fragments (
-            game_id, intel_type, content, source_uid, owner_uid, scene, scene_key
-        ) VALUES (
-            p_game_id, 'account_leak',
-            '本月发放月银，竟然有 ' || v_withheld_count || ' 位下人私下议论数额不对。',
-            p_steward_uid, p_steward_uid, 'treasury_back', 'treasury_back'
-        );
-    END IF;
-    
-    RETURN json_build_object('success', true, 'total_distributed', v_total_actual, 'total_withheld', v_total_withheld);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- intel_fragments 策略
+DROP POLICY IF EXISTS "authenticated_select_intel_fragments" ON public.intel_fragments;
+DROP POLICY IF EXISTS "authenticated_insert_intel_fragments" ON public.intel_fragments;
+DROP POLICY IF EXISTS "authenticated_update_intel_fragments" ON public.intel_fragments;
 
--- 获取银库统计
-CREATE OR REPLACE FUNCTION public.get_treasury_stats(p_game_id uuid)
-RETURNS TABLE (
-    sum_public bigint,
-    sum_withheld bigint
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        COALESCE(SUM(amount_public), 0)::bigint,
-        COALESCE(SUM(withheld_amount), 0)::bigint
-    FROM public.allowance_records
-    WHERE game_id = p_game_id;
-END;
-$$ LANGUAGE plpgsql;
+CREATE POLICY "authenticated_select_intel_fragments" ON public.intel_fragments
+    FOR SELECT TO authenticated USING (true);
+CREATE POLICY "authenticated_insert_intel_fragments" ON public.intel_fragments
+    FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "authenticated_update_intel_fragments" ON public.intel_fragments
+    FOR UPDATE TO authenticated USING (true);
+
+-- intel_trades 策略
+DROP POLICY IF EXISTS "authenticated_select_intel_trades" ON public.intel_trades;
+DROP POLICY IF EXISTS "authenticated_insert_intel_trades" ON public.intel_trades;
+DROP POLICY IF EXISTS "authenticated_update_intel_trades" ON public.intel_trades;
+
+CREATE POLICY "authenticated_select_intel_trades" ON public.intel_trades
+    FOR SELECT TO authenticated USING (true);
+CREATE POLICY "authenticated_insert_intel_trades" ON public.intel_trades
+    FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "authenticated_update_intel_trades" ON public.intel_trades
+    FOR UPDATE TO authenticated USING (true);
+
+-- intel_intercepts 策略
+DROP POLICY IF EXISTS "authenticated_select_intel_intercepts" ON public.intel_intercepts;
+DROP POLICY IF EXISTS "authenticated_insert_intel_intercepts" ON public.intel_intercepts;
+DROP POLICY IF EXISTS "authenticated_update_intel_intercepts" ON public.intel_intercepts;
+
+CREATE POLICY "authenticated_select_intel_intercepts" ON public.intel_intercepts
+    FOR SELECT TO authenticated USING (true);
+CREATE POLICY "authenticated_insert_intel_intercepts" ON public.intel_intercepts
+    FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "authenticated_update_intel_intercepts" ON public.intel_intercepts
+    FOR UPDATE TO authenticated USING (true);
 
 -- ============================================================
--- SECTION 11: 权限授予
+-- SECTION 10: 权限授予
 -- ============================================================
 
--- 授予 anon 角色权限（本地开发环境需要）
-GRANT ALL ON SCHEMA public TO anon;
-GRANT ALL ON ALL TABLES IN SCHEMA public TO anon;
-GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon;
-
--- 授予 authenticated 角色权限（Supabase 云端环境需要）
 GRANT EXECUTE ON FUNCTION public.get_my_player_id TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_session_remaining_time TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_player_active_session_count TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_scene_listener_count TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_player_intercepted TO authenticated;
-GRANT EXECUTE ON FUNCTION public.modify_player_stats TO authenticated;
-GRANT EXECUTE ON FUNCTION public.decrement_treasury TO authenticated;
-GRANT EXECUTE ON FUNCTION public.distribute_allowance_rpc TO authenticated;
-GRANT EXECUTE ON FUNCTION public.bulk_distribute_allowance_rpc TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_treasury_stats TO authenticated;
+
+GRANT EXECUTE ON FUNCTION public.require_steward_and_consume_stamina TO authenticated;
+GRANT EXECUTE ON FUNCTION public.steward_procure_goods TO authenticated;
+GRANT EXECUTE ON FUNCTION public.steward_assign_task TO authenticated;
+GRANT EXECUTE ON FUNCTION public.steward_advance_credit TO authenticated;
+GRANT EXECUTE ON FUNCTION public.steward_search_players TO authenticated;
+GRANT EXECUTE ON FUNCTION public.steward_suppress_rumor TO authenticated;
+GRANT EXECUTE ON FUNCTION public.steward_block_intel TO authenticated;
 
 -- ============================================================
--- 注释
+-- SECTION 11: 表注释
 -- ============================================================
 
 COMMENT ON TABLE public.eavesdrop_sessions IS '挂机监听会话表，记录玩家挂机监听的会话信息';
@@ -1492,7 +1077,30 @@ COMMENT ON COLUMN public.intel_fragments.session_id IS '关联的挂机会话 ID
 COMMENT ON COLUMN public.intel_fragments.status IS '情报状态：unread, read, used';
 COMMENT ON COLUMN public.intel_fragments.is_used IS '是否已使用（发布流言）';
 COMMENT ON COLUMN public.intel_fragments.is_sold IS '是否已出售';
+COMMENT ON COLUMN public.intel_fragments.is_blocked IS '是否被管家封锁';
+COMMENT ON COLUMN public.intel_fragments.blocked_until IS '封锁截止时间';
+COMMENT ON COLUMN public.intel_fragments.blocked_by IS '执行封锁的管家 UID';
 
 COMMENT ON TABLE public.intel_intercepts IS '情报拦截表，记录管家对玩家的情报拦截';
 COMMENT ON COLUMN public.intel_intercepts.interceptor_uid IS '执行拦截的管家 UID';
 COMMENT ON COLUMN public.intel_intercepts.target_uid IS '被拦截的目标玩家 UID';
+
+COMMENT ON TABLE public.messages IS '消息表，支持私信、流言、批条等多种类型';
+COMMENT ON COLUMN public.messages.message_type IS '消息类型：private, rumor, batch_order, system, petition, accusation';
+COMMENT ON COLUMN public.messages.attachments IS '附件列表，如情报碎片';
+COMMENT ON COLUMN public.messages.stamina_cost IS '精力消耗';
+COMMENT ON COLUMN public.messages.is_tampered IS '是否被丫鬟篡改';
+COMMENT ON COLUMN public.messages.original_content IS '原始内容（被篡改前）';
+COMMENT ON COLUMN public.messages.is_intercepted IS '是否被丫鬟截留';
+COMMENT ON COLUMN public.messages.stage IS '流言发酵阶段：0=初期，1=发酵中，2=已成实质';
+COMMENT ON COLUMN public.messages.expires_at IS '过期时间（流言专用）';
+
+COMMENT ON TABLE public.procurement_tickets IS '采办物资票据表';
+COMMENT ON COLUMN public.procurement_tickets.item_template_key IS '物品模板键';
+COMMENT ON COLUMN public.procurement_tickets.quantity IS '数量';
+COMMENT ON COLUMN public.procurement_tickets.status IS '状态：pending, used, cancelled';
+
+COMMENT ON TABLE public.action_approvals IS '行动批条表，记录管家执行的行动';
+COMMENT ON COLUMN public.action_approvals.action_type IS '行动类型';
+COMMENT ON COLUMN public.action_approvals.stamina_cost IS '精力消耗';
+COMMENT ON COLUMN public.action_approvals.params IS '行动参数（JSONB）';

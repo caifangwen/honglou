@@ -28,6 +28,15 @@ var current_steward_data: Dictionary = {}
 var current_treasury_data: Dictionary = {}
 var allowance_history: Array = []
 
+# 各项行动精力消耗（统一引用 GameConfig 常量）
+const COST_STAMINA_PROCUREMENT: int = GameConfig.COST_PROCURE
+const COST_STAMINA_ASSIGNMENT: int = GameConfig.COST_ASSIGN_TASK
+const COST_STAMINA_SEARCH: int = GameConfig.COST_SEARCH_GARDEN
+const COST_STAMINA_ADVANCE: int = GameConfig.COST_ADVANCE_PAYMENT
+const COST_STAMINA_SUPPRESS: int = GameConfig.COST_SUPPRESS_RUMOR
+const COST_STAMINA_BLOCK: int = GameConfig.COST_BLOCK_INFO
+const COST_STAMINA_ALLOWANCE: int = 0 # 发放月例暂不消耗精力
+
 func _ready() -> void:
 	# 初始化数据
 	_refresh_data()
@@ -38,6 +47,9 @@ func _ready() -> void:
 
 	if debug_allowance_btn:
 		debug_allowance_btn.pressed.connect(_on_DebugAllowanceBtn_pressed)
+
+	# 确保行动按钮已连接 (防止 .tscn 中连接丢失)
+	_connect_action_buttons()
 
 	# 账目弹窗关闭按钮连接
 	if account_popup_close_btn:
@@ -68,6 +80,36 @@ func _refresh_data() -> void:
 	_refresh_steward_data()
 	_refresh_allowance_data()
 	_load_player_allocation_list()
+
+func _connect_action_buttons() -> void:
+	# 显式连接行动面板中的按钮
+	var proc_btn = get_node_or_null("ActionPanel/ProcureBtn")
+	if proc_btn and not proc_btn.pressed.is_connected(_on_ProcureBtn_pressed):
+		proc_btn.pressed.connect(_on_ProcureBtn_pressed)
+		
+	var assign_btn = get_node_or_null("ActionPanel/AssignTaskBtn")
+	if assign_btn and not assign_btn.pressed.is_connected(_on_AssignTaskBtn_pressed):
+		assign_btn.pressed.connect(_on_AssignTaskBtn_pressed)
+		
+	var search_btn = get_node_or_null("ActionPanel/SearchGardenBtn")
+	if search_btn and not search_btn.pressed.is_connected(_on_SearchGardenBtn_pressed):
+		search_btn.pressed.connect(_on_SearchGardenBtn_pressed)
+		
+	var advance_btn = get_node_or_null("ActionPanel/AdvanceBtn")
+	if advance_btn and not advance_btn.pressed.is_connected(_on_AdvanceBtn_pressed):
+		advance_btn.pressed.connect(_on_AdvanceBtn_pressed)
+		
+	var suppress_btn = get_node_or_null("ActionPanel/SuppressRumorBtn")
+	if suppress_btn and not suppress_btn.pressed.is_connected(_on_SuppressRumorBtn_pressed):
+		suppress_btn.pressed.connect(_on_SuppressRumorBtn_pressed)
+		
+	var block_btn = get_node_or_null("ActionPanel/BlockInfoBtn")
+	if block_btn and not block_btn.pressed.is_connected(_on_BlockInfoBtn_pressed):
+		block_btn.pressed.connect(_on_BlockInfoBtn_pressed)
+		
+	var confirm_btn = get_node_or_null("AllocationPanel/ConfirmAllocationBtn")
+	if confirm_btn and not confirm_btn.pressed.is_connected(_on_ConfirmAllocationBtn_pressed):
+		confirm_btn.pressed.connect(_on_ConfirmAllocationBtn_pressed)
 
 func _refresh_treasury_data() -> void:
 	var game_id = GameState.current_game_id
@@ -454,16 +496,19 @@ func _add_player_to_list(player_info: Dictionary) -> void:
 func _execute_batch_action(action_type: String, extra: Dictionary = {}) -> void:
 	var rpc_name := ""
 	var params: Dictionary = {}
+	var cost: int = 0
 	
 	match action_type:
 		"procurement":
 			rpc_name = "steward_procure_goods"
+			cost = COST_STAMINA_PROCUREMENT
 			params = {
 				"p_item_template_key": extra.get("item_template_key", "generic_supply"),
 				"p_quantity": extra.get("quantity", 1)
 			}
 		"assignment":
 			rpc_name = "steward_assign_task"
+			cost = COST_STAMINA_ASSIGNMENT
 			var target_uid: String = extra.get("target_uid", "")
 			if target_uid == "":
 				push_error("请先选择一名目标玩家再派差事")
@@ -474,9 +519,11 @@ func _execute_batch_action(action_type: String, extra: Dictionary = {}) -> void:
 			}
 		"search":
 			rpc_name = "steward_search_players"
+			cost = COST_STAMINA_SEARCH
 			params = {}
 		"advance":
 			rpc_name = "steward_advance_credit"
+			cost = COST_STAMINA_ADVANCE
 			var adv_target: String = extra.get("target_uid", "")
 			if adv_target == "":
 				push_error("请先选择一名目标玩家再预支批条")
@@ -488,6 +535,7 @@ func _execute_batch_action(action_type: String, extra: Dictionary = {}) -> void:
 			}
 		"suppress_rumor":
 			rpc_name = "steward_suppress_rumor"
+			cost = COST_STAMINA_SUPPRESS
 			var rumor_id: String = extra.get("rumor_id", "")
 			if rumor_id == "":
 				push_error("未指定要平息的流言")
@@ -495,6 +543,7 @@ func _execute_batch_action(action_type: String, extra: Dictionary = {}) -> void:
 			params = {"p_rumor_id": rumor_id}
 		"block_intel":
 			rpc_name = "steward_block_intel"
+			cost = COST_STAMINA_BLOCK
 			var intel_id: String = extra.get("intel_id", "")
 			if intel_id == "":
 				push_error("未指定要封锁的情报")
@@ -504,6 +553,11 @@ func _execute_batch_action(action_type: String, extra: Dictionary = {}) -> void:
 			push_error("未知行动类型: " + action_type)
 			return
 	
+	# 检查精力是否足够
+	if PlayerState.get_current_stamina() < cost:
+		push_error("精力不足，执行该行动需要 %d 点精力" % cost)
+		return
+	
 	var res = await SupabaseManager.db_rpc(rpc_name, params)
 	var ok: bool = int(res.get("code", 0)) == 200
 	if ok:
@@ -512,11 +566,19 @@ func _execute_batch_action(action_type: String, extra: Dictionary = {}) -> void:
 			ok = false
 	
 	if ok:
+		# 行动执行成功后，手动扣除精力以更新 UI
+		if cost > 0:
+			PlayerState.consume_stamina(cost)
 		_refresh_data()
 		print("行动执行成功: ", action_type)
+		# 可以在此处通过 EventBus 发送成功通知
+		if EventBus.has_signal("show_notification"):
+			EventBus.emit_signal("show_notification", "【银库】行动执行成功！")
 	else:
 		var err = str(res.get("error", res.get("data", {}).get("error", "未知错误")))
 		push_error("行动执行失败: %s" % err)
+		if EventBus.has_signal("show_notification"):
+			EventBus.emit_signal("show_notification", "【银库】行动失败: %s" % err)
 
 func distribute_allowance(target_uid: String, amount: int, standard: int):
 	print("[TreasuryUI] Attempting to distribute allowance: target=%s, amount=%d" % [target_uid, amount])

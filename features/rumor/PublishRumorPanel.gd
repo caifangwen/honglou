@@ -6,6 +6,9 @@ enum SourceType { INTEL_FRAGMENT, FREEWRITE }
 # 测试模式开关：当设为 true 时使用本地模拟数据库（无需网络）
 const USE_MOCK_DATABASE: bool = true
 
+# 发布流言精力消耗（统一引用 GameConfig 常量）
+const COST_STAMINA: int = GameConfig.COST_PUBLISH_RUMOR
+
 var selected_source_type: SourceType = SourceType.FREEWRITE
 var selected_fragments: Array = []  # 最多 2 个
 var selected_target_uid: String = ""
@@ -127,7 +130,7 @@ func _on_publish():
 		return
 
 	# 校验精力
-	if PlayerState.stamina < 5:
+	if PlayerState.stamina < COST_STAMINA:
 		EventBus.show_notification.emit("精力不足，无法发布流言")
 		return
 
@@ -213,12 +216,12 @@ func _on_publish():
 	if result["code"] == 201 or result["code"] == 200:
 		# 扣除精力
 		if USE_MOCK_DATABASE:
-			await MockDatabase.mock_update_player(PlayerState.player_db_id, {"stamina": PlayerState.stamina - 5})
+			await MockDatabase.mock_update_player(PlayerState.player_db_id, {"stamina": PlayerState.stamina - COST_STAMINA})
 		else:
 			await SupabaseManager.db_update(
 				"players",
 				"id=eq." + PlayerState.player_db_id,
-				{"stamina": PlayerState.stamina - 5}
+				{"stamina": PlayerState.stamina - COST_STAMINA}
 			)
 
 		# 标记碎片为已使用
@@ -234,7 +237,7 @@ func _on_publish():
 					)
 
 		EventBus.show_notification.emit("流言已悄悄散出，坐等发酵...")
-		PlayerState.stamina -= 5
+		PlayerState.consume_stamina(COST_STAMINA)
 		hide()
 		# 发送信号通知列表刷新
 		var rumor_data = result["data"] if result["data"] is Array else result["data"]

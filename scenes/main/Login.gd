@@ -167,10 +167,12 @@ func _auto_create_test_player() -> void:
 		"qi_points": 100
 	}
 
+	print("[Login] Player data to insert: ", new_player)
 	var res = await SupabaseManager.db_insert("players", new_player)
 	print("[Login] Player insert result: code=%s, data=%s, error=%s" % [
 		res.get("code", "N/A"), res.get("data", "N/A"), res.get("error", "N/A")
 	])
+	print("[Login] Full response: ", res)
 
 	if res["code"] == 201 or res["code"] == 200:
 		# 创建成功
