@@ -31,6 +31,7 @@ RelationshipManager="*res://features/relationship/RelationshipManager.gd"
 MaidProgressionChecker="*res://features/relationship/MaidProgressionChecker.gd"
 InboxManager="*res://features/inbox/InboxManager.gd"
 PowerInfluence="*res://features/power/PowerInfluence.gd"
+DuiShiEvents="*res://features/relationship/DuiShiEvents.gd"
 
 [input]
 

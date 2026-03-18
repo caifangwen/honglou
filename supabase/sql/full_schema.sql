@@ -376,6 +376,9 @@ CREATE TABLE IF NOT EXISTS public.maid_relationships (
     relation_type maid_relation_type NOT NULL,
     status maid_relation_status DEFAULT 'pending',
     initiated_by uuid REFERENCES public.players(id),
+    formed_at timestamptz,
+    shared_intel_ids uuid[] DEFAULT '{}',
+    betrayer_uid uuid REFERENCES public.players(id),
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now(),
     UNIQUE(game_id, player_a_uid, player_b_uid, relation_type)

@@ -2,23 +2,67 @@
 
 [ext_resource type="Script" path="res://features/relationship/RelationshipPanel.gd" id="1_script"]
 
-[node name="RelationshipPanel" type="VBoxContainer"]
-offset_right = 400.0
-offset_bottom = 300.0
-theme_override_constants/separation = 10
+[node name="RelationshipPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="TitleLabel" type="Label" parent="."]
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.15, 0.15, 0.18, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_constants/separation = 15
+size_flags_vertical = 3
+
+[node name="TopBar" type="HBoxContainer" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BackBtn" type="Button" parent="CenterContainer/VBoxContainer/TopBar"]
+custom_minimum_size = Vector2(100, 40)
+layout_mode = 2
+text = "← 返回"
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/VBoxContainer/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
 text = "我的关系"
 horizontal_alignment = 1
 
-[node name="current_relation_panel" type="Panel" parent="."]
-custom_minimum_size = Vector2(0, 100)
+[node name="Spacer" type="Control" parent="CenterContainer/VBoxContainer/TopBar"]
+custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 
-[node name="relation_status_label" type="Label" parent="current_relation_panel"]
+[node name="Spacer2" type="Control" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="current_relation_panel" type="Panel" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(400, 150)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="relation_status_label" type="Label" parent="CenterContainer/VBoxContainer/current_relation_panel"]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -28,7 +72,7 @@ grow_horizontal = 2
 text = "当前对食/私约：暂无"
 horizontal_alignment = 1
 
-[node name="betray_btn" type="Button" parent="current_relation_panel"]
+[node name="betray_btn" type="Button" parent="CenterContainer/VBoxContainer/current_relation_panel"]
 visible = false
 layout_mode = 1
 anchors_preset = 8
@@ -44,7 +88,7 @@ grow_horizontal = 2
 grow_vertical = 2
 text = "背叛搭档"
 
-[node name="loyalty_label" type="Label" parent="current_relation_panel"]
+[node name="loyalty_label" type="Label" parent="CenterContainer/VBoxContainer/current_relation_panel"]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -57,7 +101,7 @@ grow_vertical = 0
 text = "对当前主子的忠诚度："
 horizontal_alignment = 1
 
-[node name="loyalty_to_master_bar" type="ProgressBar" parent="current_relation_panel"]
+[node name="loyalty_to_master_bar" type="ProgressBar" parent="CenterContainer/VBoxContainer/current_relation_panel"]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -68,11 +112,13 @@ grow_horizontal = 2
 grow_vertical = 0
 value = 50.0
 
-[node name="incoming_requests_panel" type="Panel" parent="."]
-custom_minimum_size = Vector2(0, 100)
+[node name="incoming_requests_panel" type="Panel" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(400, 150)
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
-[node name="Label" type="Label" parent="incoming_requests_panel"]
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer/incoming_requests_panel"]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -82,7 +128,7 @@ grow_horizontal = 2
 text = "待确认申请"
 horizontal_alignment = 1
 
-[node name="requests_list" type="VBoxContainer" parent="incoming_requests_panel"]
+[node name="requests_list" type="VBoxContainer" parent="CenterContainer/VBoxContainer/incoming_requests_panel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -91,9 +137,16 @@ offset_top = 35.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="send_request_btn" type="Button" parent="."]
+[node name="Spacer3" type="Control" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
+
+[node name="send_request_btn" type="Button" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(300, 60)
+layout_mode = 2
+size_flags_horizontal = 3
 text = "发起对食/私约申请"
 
-[connection signal="pressed" from="current_relation_panel/betray_btn" to="." method="_on_betray_btn_pressed"]
-[connection signal="pressed" from="send_request_btn" to="." method="_on_send_request_btn_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/current_relation_panel/betray_btn" to="." method="_on_betray_btn_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/send_request_btn" to="." method="_on_send_request_btn_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/TopBar/BackBtn" to="." method="_on_back_btn_pressed"]

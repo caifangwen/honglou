@@ -35,7 +35,8 @@ func _ready() -> void:
 	_connect_button("NavigationPanel/NavigationVBox/Row3/MarketBtn", _on_MarketBtn_pressed)
 	_connect_button("NavigationPanel/NavigationVBox/Row3/EavesdropHubBtn", _on_EavesdropHubBtn_pressed)
 	_connect_button("NavigationPanel/NavigationVBox/Row3/EavesdropBtn", _on_EavesdropBtn_pressed)
-	
+	_connect_button("NavigationPanel/NavigationVBox/Row4/RelationshipBtn", _on_RelationshipBtn_pressed)
+
 	# 仅在调试模式下添加调试按钮
 	if OS.is_debug_build():
 		_add_debug_nav_button()
@@ -161,3 +162,7 @@ func _on_EavesdropBtn_pressed() -> void:
 func _on_EavesdropHubBtn_pressed() -> void:
 	print("=== [HubUI] EavesdropHubBtn pressed! ===")
 	get_tree().change_scene_to_file("res://features/eavesdrop/EavesdropHub.tscn")
+
+func _on_RelationshipBtn_pressed() -> void:
+	print("=== [HubUI] RelationshipBtn pressed! ===")
+	get_tree().change_scene_to_file("res://features/relationship/RelationshipPanel.tscn")

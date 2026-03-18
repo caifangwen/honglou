@@ -158,6 +158,16 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "听壁脚"
 
+[node name="Row4" type="HBoxContainer" parent="NavigationPanel/NavigationVBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="RelationshipBtn" type="Button" parent="NavigationPanel/NavigationVBox/Row4"]
+custom_minimum_size = Vector2(120, 60)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "我的关系"
+
 [node name="NotificationList" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchor_left = 0.02

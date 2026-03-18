@@ -90,18 +90,9 @@ func betray_partner(relationship_id: String, betrayer_uid: String) -> void:
     await SupabaseManager.db_update("maid_relationships", "id=eq." + relationship_id, update_rel_data)
     
     # 3. 将 shared_intel_ids 列表中的所有碎片，给被背叛方一份副本（相同情报碎片）
-    # 假设有一个 intel_fragments 表，我们需要为 partner_uid 插入副本
-    # 这里通过 RPC 调用后端逻辑更安全，或者批量插入
+    # 使用新的辅助函数复制情报
     if not shared_intel_ids.is_empty():
-        for intel_id in shared_intel_ids:
-            var intel_res = await SupabaseManager.db_get("/rest/v1/intel_fragments?id=eq." + intel_id + "&select=*")
-            if intel_res["code"] == 200 and not intel_res["data"].is_empty():
-                var original_intel = intel_res["data"][0]
-                var copy_intel = original_intel.duplicate()
-                copy_intel.erase("id") # 移除旧 ID 让 Supabase 生成新 ID
-                copy_intel["owner_uid"] = partner_uid
-                copy_intel["is_copy"] = true
-                await SupabaseManager.db_insert("intel_fragments", copy_intel)
+        await copy_shared_intel_to_partner(relationship_id, shared_intel_ids, partner_uid)
                 
     # 4. 被背叛方收到通知
     var betrayal_msg = "[%s] 背叛了你们的私约，你获得了所有共同情报的副本" % PlayerState.character_name
@@ -213,3 +204,86 @@ func get_pending_requests(player_uid: String) -> Array:
     if res["code"] == 200:
         return res["data"]
     return []
+
+# 触发对食特殊事件（每日一次）
+func trigger_dui_shi_event(player_uid: String) -> void:
+    var rel = await get_current_relationship(player_uid)
+    if rel.is_empty():
+        return
+    
+    # 检查关系类型是否为对食
+    if rel.get("relation_type") != "dui_shi":
+        return
+    
+    # 检查今天是否已经触发过事件
+    var today = Time.get_date_string_from_system()
+    var check_res = await SupabaseManager.db_get(
+        "/rest/v1/event_logs?player_uid=eq.%s&event_type=like.dui_shi_%%&created_at=gt.%sT00:00:00&select=id" % [player_uid, today]
+    )
+    
+    if check_res["code"] == 200 and not check_res["data"].is_empty():
+        return  # 今天已经触发过
+    
+    # 获取搭档 UID
+    var partner_uid = rel.get("player_a_uid") if rel.get("player_b_uid") == player_uid else rel.get("player_b_uid")
+    
+    # 使用 Autoload 的 DuiShiEvents 触发事件
+    if Engine.has_singleton("DuiShiEvents"):
+        var DuiShiEvents: Node = Engine.get_singleton("DuiShiEvents")
+        await DuiShiEvents.check_and_trigger_event(player_uid, partner_uid)
+
+# 共享情报给搭档（当玩家获得新情报时调用）
+func share_intel_with_partner(player_uid: String, intel_id: String) -> void:
+    # 获取当前活跃的对食关系
+    var rel = await get_current_relationship(player_uid)
+    if rel.is_empty():
+        return
+    
+    # 检查关系类型是否为对食（只有对食关系才共享情报）
+    if rel.get("relation_type") != "dui_shi":
+        return
+    
+    # 获取 shared_intel_ids 列表
+    var shared_intel_ids = rel.get("shared_intel_ids", [])
+    
+    # 如果这个情报已经共享过，就不再重复
+    if intel_id in shared_intel_ids:
+        return
+    
+    # 添加新情报 ID 到共享列表
+    shared_intel_ids.append(intel_id)
+    
+    # 更新数据库
+    await SupabaseManager.db_update("maid_relationships", "id=eq." + rel["id"], {"shared_intel_ids": shared_intel_ids})
+    
+    # 通知搭档（这里通过数据库插入通知记录）
+    var partner_uid = rel.get("player_a_uid") if rel.get("player_b_uid") == player_uid else rel.get("player_a_uid")
+    await SupabaseManager.db_insert("notifications", {
+        "player_uid": partner_uid,
+        "content": "你的对食搭档分享了新的情报",
+        "type": "intel_share",
+        "created_at": Time.get_datetime_string_from_system(false, true),
+        "meta": {"intel_id": intel_id, "relationship_id": rel["id"]}
+    })
+
+# 获取搭档共享的情报列表
+func get_shared_intel_ids(player_uid: String) -> Array:
+    var rel = await get_current_relationship(player_uid)
+    if rel.is_empty():
+        return []
+    
+    return rel.get("shared_intel_ids", [])
+
+# 复制共享情报给玩家（用于背叛时）
+func copy_shared_intel_to_partner(relationship_id: String, source_intel_ids: Array, target_uid: String) -> void:
+    for intel_id in source_intel_ids:
+        # 获取原始情报
+        var intel_res = await SupabaseManager.db_get("/rest/v1/intel_fragments?id=eq." + intel_id + "&select=*")
+        if intel_res["code"] == 200 and not intel_res["data"].is_empty():
+            var original_intel = intel_res["data"][0]
+            var copy_intel = original_intel.duplicate()
+            copy_intel.erase("id")  # 移除旧 ID
+            copy_intel["owner_uid"] = target_uid
+            copy_intel["is_copy"] = true
+            copy_intel["copied_from"] = intel_id
+            await SupabaseManager.db_insert("intel_fragments", copy_intel)

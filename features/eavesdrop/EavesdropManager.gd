@@ -329,7 +329,16 @@ func generate_intel_fragment(session_id: String, force: bool = false) -> void:
 	var new_count: int = session.get("result_count", 0) + 1
 	await SupabaseManager.db_update("eavesdrop_sessions", "id=eq." + session_id, {"result_count": new_count})
 
-	# 6. 双人挂机逻辑：生成双倍碎片
+	# 6. 对食关系情报共享（只有对食关系才共享）
+	if frag_res.get("data") and frag_res["data"].size() > 0:
+		var new_intel_id = frag_res["data"][0].get("id", "")
+		if new_intel_id != "":
+			# 调用 RelationshipManager 共享情报
+			var RelManager: Node = Engine.get_singleton("RelationshipManager")
+			if RelManager:
+				await RelManager.share_intel_with_partner(session["player_uid"], new_intel_id)
+
+	# 7. 双人挂机逻辑：生成双倍碎片
 	if session.get("is_duo", false) and session.get("partner_uid", "") != "":
 		fragment_data["owner_uid"] = session["partner_uid"]
 		fragment_data["value_level"] = mini(fragment_data["value_level"] + DUO_EXTRA_FRAGMENT, 5)
