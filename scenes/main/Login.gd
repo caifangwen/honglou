@@ -8,18 +8,34 @@ extends Control
 @onready var login_btn      = $CenterContainer/LoginPanel/LoginBtn
 @onready var register_btn   = $CenterContainer/LoginPanel/RegisterBtn
 @onready var quick_login_grid = $CenterContainer/LoginPanel/QuickLoginGrid
+@onready var quick_login_scroll = $CenterContainer/LoginPanel/QuickLoginScroll
+
+# 测试账号（本地模式使用固定 UID 映射）
+# 角色分类：管家、主子、丫鬟、小厮、长辈
+var test_accounts = [
+	# 管家
+	{"name": "🔸 王熙凤 (管家)", "email": "fengjie@example.com", "pass": "123456", "uid": "11111111-1111-1111-1111-111111111111"},
+	{"name": "🔸 平儿 (管家)", "email": "pingr@example.com", "pass": "123456", "uid": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"},
+	# 主子
+	{"name": "👑 贾宝玉 (主子)", "email": "baoyu@example.com", "pass": "123456", "uid": "22222222-2222-2222-2222-222222222222"},
+	{"name": "👑 林黛玉 (主子)", "email": "daiyu@example.com", "pass": "123456", "uid": "33333333-3333-3333-3333-333333333333"},
+	{"name": "👑 薛宝钗 (主子)", "email": "baochai@example.com", "pass": "123456", "uid": "66666666-6666-6666-6666-666666666666"},
+	{"name": "👑 贾迎春 (主子)", "email": "yingchun@example.com", "pass": "123456", "uid": "77777777-7777-7777-7777-777777777777"},
+	{"name": "👑 贾探春 (主子)", "email": "tanchun@example.com", "pass": "123456", "uid": "88888888-8888-8888-8888-888888888888"},
+	{"name": "👑 贾惜春 (主子)", "email": "xichun@example.com", "pass": "123456", "uid": "99999999-9999-9999-9999-999999999999"},
+	# 丫鬟
+	{"name": "🌸 袭人 (丫鬟)", "email": "xiren@example.com", "pass": "123456", "uid": "44444444-4444-4444-4444-444444444444"},
+	{"name": "🌸 晴雯 (丫鬟)", "email": "qingwen@example.com", "pass": "123456", "uid": "55555555-5555-5555-5555-555555555555"},
+	{"name": "🌸 鸳鸯 (丫鬟)", "email": "yuanyang@example.com", "pass": "123456", "uid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"},
+	{"name": "🌸 紫鹃 (丫鬟)", "email": "zijuan@example.com", "pass": "123456", "uid": "cccccccc-cccc-cccc-cccc-cccccccccccc"},
+	{"name": "🌸 麝月 (丫鬟)", "email": "mili@example.com", "pass": "123456", "uid": "ffffffff-ffff-ffff-ffff-ffffffffffff"},
+	# 小厮
+	{"name": "📦 茗烟 (小厮)", "email": "mingyan@example.com", "pass": "123456", "uid": "11111110-1111-1111-1111-111111111111"},
+	{"name": "📦 兴儿 (小厮)", "email": "xingr@example.com", "pass": "123456", "uid": "33333330-3333-3333-3333-333333333333"}
+]
 
 var _is_signing_in: bool = false
 var _is_local_mode: bool = false
-
-# 测试账号（本地模式使用固定 UID 映射）
-var test_accounts = [
-	{"name": "凤姐 (管家)", "email": "fengjie@example.com", "pass": "123456", "uid": "11111111-1111-1111-1111-111111111111"},
-	{"name": "平儿 (管家)", "email": "pinger@example.com", "pass": "123456", "uid": "66666666-6666-6666-6666-666666666666"},
-	{"name": "袭人 (丫鬟)", "email": "xiren@example.com", "pass": "123456", "uid": "44444444-4444-4444-4444-444444444444"},
-	{"name": "晴雯 (丫鬟)", "email": "qingwen@example.com", "pass": "123456", "uid": "55555555-5555-5555-5555-555555555555"},
-	{"name": "贾母 (元老)", "email": "jiamu@example.com", "pass": "123456", "uid": "77777777-7777-7777-7777-777777777777"}
-]
 
 func _ready() -> void:
 	print("=== [Login] _ready() called ===")
@@ -45,12 +61,19 @@ func _check_local_mode() -> void:
 		print("[Login] 本地开发模式 - 使用固定 UID 映射测试账号")
 
 func _setup_quick_login_buttons() -> void:
+	# 获取 QuickLoginScroll 内的 VBoxContainer
+	var vbox = quick_login_scroll.get_node_or_null("VBoxContainer")
+	if not vbox:
+		push_error("[Login] VBoxContainer not found in QuickLoginScroll")
+		return
+	
 	for acc in test_accounts:
 		var btn = Button.new()
 		btn.text = acc["name"]
 		btn.add_theme_font_size_override("font_size", 12)
+		btn.custom_minimum_size = Vector2(150, 30)
 		btn.pressed.connect(_on_quick_account_pressed.bind(acc))
-		quick_login_grid.add_child(btn)
+		vbox.add_child(btn)
 
 func _on_quick_account_pressed(acc: Dictionary) -> void:
 	_is_signing_in = true
@@ -144,9 +167,19 @@ func _auto_create_test_player() -> void:
 	# 根据邮箱自动映射角色
 	if "xiren" in username: role = "servant"; char_name = "袭人"
 	elif "qingwen" in username: role = "servant"; char_name = "晴雯"
-	elif "jiamu" in username: role = "elder"; char_name = "贾母"
+	elif "yuanyang" in username: role = "servant"; char_name = "鸳鸯"
+	elif "zijuan" in username: role = "servant"; char_name = "紫鹃"
+	elif "mili" in username: role = "servant"; char_name = "麝月"
+	elif "mingyan" in username: role = "servant"; char_name = "茗烟"
+	elif "xingr" in username: role = "servant"; char_name = "兴儿"
+	elif "baoyu" in username: role = "master"; char_name = "贾宝玉"
+	elif "daiyu" in username: role = "master"; char_name = "林黛玉"
+	elif "baochai" in username: role = "master"; char_name = "薛宝钗"
+	elif "yingchun" in username: role = "master"; char_name = "贾迎春"
+	elif "tanchun" in username: role = "master"; char_name = "贾探春"
+	elif "xichun" in username: role = "master"; char_name = "贾惜春"
 	elif "pinger" in username: role = "steward"; char_name = "平儿"
-	elif "fengjie" in username: role = "steward"; char_name = "凤姐"
+	elif "fengjie" in username: role = "steward"; char_name = "王熙凤"
 
 	print("[Login] Creating player: username=%s, role=%s, auth_uid=%s, game_id=%s" % [
 		username, role, SupabaseManager.current_uid, GameState.current_game_id
@@ -182,7 +215,7 @@ func _auto_create_test_player() -> void:
 		PlayerState.load_from_db(player_data)
 		print("[Login] Player created successfully: player_db_id=%s" % PlayerState.player_db_id)
 		get_tree().change_scene_to_file("res://scenes/main/Hub.tscn")
-	
+
 	elif res["code"] == 409:
 		# 玩家已存在（冲突），查询并加载现有数据
 		print("[Login] Player already exists (409), loading existing player")
@@ -196,7 +229,7 @@ func _auto_create_test_player() -> void:
 			error_label.text = "角色已存在但无法加载：" + str(query_res.get("error", "Unknown"))
 			error_label.show()
 			_set_loading(false)
-	
+
 	else:
 		# 其他错误
 		error_label.text = "自动创建角色失败：" + str(res.get("error", "Unknown"))
@@ -213,9 +246,13 @@ func _set_loading(on: bool) -> void:
 	loading_label.visible = on
 	login_btn.disabled = on
 	register_btn.disabled = on
-	for btn in quick_login_grid.get_children():
-		if btn is Button:
-			btn.disabled = on
+	
+	# 禁用所有快捷登录按钮
+	var vbox = quick_login_scroll.get_node_or_null("VBoxContainer")
+	if vbox:
+		for btn in vbox.get_children():
+			if btn is Button:
+				btn.disabled = on
 
 func _localize_error(raw: String) -> String:
 	var low = raw.to_lower()

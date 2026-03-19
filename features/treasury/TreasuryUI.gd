@@ -21,12 +21,33 @@ extends Control
 @onready var account_popup_content: ScrollContainer = get_node_or_null("AccountPopup/VBoxContainer/Content")
 @onready var account_popup_close_btn: Button = get_node_or_null("AccountPopup/VBoxContainer/CloseBtn")
 
+# 差事分派相关节点
+@onready var assign_task_panel: PanelContainer = get_node_or_null("AssignTaskPanel")
+@onready var task_type_selector: OptionButton = get_node_or_null("AssignTaskPanel/TaskTypeSelector")
+@onready var task_target_selector: OptionButton = get_node_or_null("AssignTaskPanel/TaskTargetSelector")
+@onready var task_reward_input: SpinBox = get_node_or_null("AssignTaskPanel/RewardInput")
+@onready var task_confirm_btn: Button = get_node_or_null("AssignTaskPanel/ConfirmBtn")
+@onready var task_cancel_btn: Button = get_node_or_null("AssignTaskPanel/CancelBtn")
+
 # 调试标签
 @onready var debug_count_label: Label = get_node_or_null("TabContainer/PublicLedger/DebugCountLabel")
 
 var current_steward_data: Dictionary = {}
 var current_treasury_data: Dictionary = {}
 var allowance_history: Array = []
+
+# 差事类型定义
+const TASK_TYPES = {
+	"errand": { "name": "跑腿差事", "base_cost": 1, "base_reward": 5, "stamina_drain": 2 },
+	"guard": { "name": "看守差事", "base_cost": 1, "base_reward": 8, "stamina_drain": 1 },
+	"purchase": { "name": "采办差事", "base_cost": 1, "base_reward": 10, "stamina_drain": 3 },
+	"message": { "name": "传话差事", "base_cost": 1, "base_reward": 6, "stamina_drain": 2 },
+	"clean": { "name": "打扫差事", "base_cost": 1, "base_reward": 4, "stamina_drain": 2 },
+	"special": { "name": "特殊差事", "base_cost": 2, "base_reward": 15, "stamina_drain": 4 }
+}
+
+var selected_task_type: String = "errand"
+var selected_target_uid: String = ""
 
 # 各项行动精力消耗（统一引用 GameConfig 常量）
 const COST_STAMINA_PROCUREMENT: int = GameConfig.COST_PROCURE
@@ -54,6 +75,9 @@ func _ready() -> void:
 	# 账目弹窗关闭按钮连接
 	if account_popup_close_btn:
 		account_popup_close_btn.pressed.connect(_on_account_popup_close)
+
+	# 差事分派面板连接
+	_connect_task_panel()
 
 	# 设置实时监听
 	SupabaseManager.subscribe_to_table("treasury")
@@ -86,30 +110,122 @@ func _connect_action_buttons() -> void:
 	var proc_btn = get_node_or_null("ActionPanel/ProcureBtn")
 	if proc_btn and not proc_btn.pressed.is_connected(_on_ProcureBtn_pressed):
 		proc_btn.pressed.connect(_on_ProcureBtn_pressed)
-		
+
 	var assign_btn = get_node_or_null("ActionPanel/AssignTaskBtn")
 	if assign_btn and not assign_btn.pressed.is_connected(_on_AssignTaskBtn_pressed):
 		assign_btn.pressed.connect(_on_AssignTaskBtn_pressed)
-		
+
 	var search_btn = get_node_or_null("ActionPanel/SearchGardenBtn")
 	if search_btn and not search_btn.pressed.is_connected(_on_SearchGardenBtn_pressed):
 		search_btn.pressed.connect(_on_SearchGardenBtn_pressed)
-		
+
 	var advance_btn = get_node_or_null("ActionPanel/AdvanceBtn")
 	if advance_btn and not advance_btn.pressed.is_connected(_on_AdvanceBtn_pressed):
 		advance_btn.pressed.connect(_on_AdvanceBtn_pressed)
-		
+
 	var suppress_btn = get_node_or_null("ActionPanel/SuppressRumorBtn")
 	if suppress_btn and not suppress_btn.pressed.is_connected(_on_SuppressRumorBtn_pressed):
 		suppress_btn.pressed.connect(_on_SuppressRumorBtn_pressed)
-		
+
 	var block_btn = get_node_or_null("ActionPanel/BlockInfoBtn")
 	if block_btn and not block_btn.pressed.is_connected(_on_BlockInfoBtn_pressed):
 		block_btn.pressed.connect(_on_BlockInfoBtn_pressed)
-		
+
 	var confirm_btn = get_node_or_null("AllocationPanel/ConfirmAllocationBtn")
 	if confirm_btn and not confirm_btn.pressed.is_connected(_on_ConfirmAllocationBtn_pressed):
 		confirm_btn.pressed.connect(_on_ConfirmAllocationBtn_pressed)
+
+# 连接差事分派面板信号
+func _connect_task_panel() -> void:
+	if task_type_selector:
+		task_type_selector.item_selected.connect(_on_task_type_selected)
+	if task_target_selector:
+		task_target_selector.item_selected.connect(_on_task_target_selected)
+	if task_confirm_btn:
+		task_confirm_btn.pressed.connect(_on_task_confirm_pressed)
+	if task_cancel_btn:
+		task_cancel_btn.pressed.connect(_on_task_cancel_pressed)
+
+# 更新差事分派面板 UI
+func _update_task_panel_ui() -> void:
+	if not task_type_selector or not task_target_selector:
+		return
+	
+	# 填充差事类型选项
+	task_type_selector.clear()
+	for key in TASK_TYPES.keys():
+		var task_info = TASK_TYPES[key]
+		var display_text = "%s (精力消耗：%d, 基础赏银：%d)" % [task_info.name, task_info.base_cost, task_info.base_reward]
+		task_type_selector.add_item(display_text)
+		task_type_selector.set_item_id(task_type_selector.get_item_count() - 1, key)
+	
+	# 填充目标玩家选项
+	task_target_selector.clear()
+	task_target_selector.add_item("—— 请选择目标 ——")
+	if player_list:
+		for item in player_list.get_children():
+			if item.has_meta("player_id"):
+				var player_id = item.get_meta("player_id")
+				var character_name = item.get_meta("character_name")
+				var role_class = item.get_meta("role_class", "servant")
+				task_target_selector.add_item("%s (%s)" % [character_name, _get_role_display(role_class)])
+				task_target_selector.set_item_id(task_target_selector.get_item_count() - 1, player_id)
+	
+	# 根据选择的差事类型更新赏银输入
+	_update_reward_input()
+
+func _get_role_display(role: String) -> String:
+	match role:
+		"master": return "主子"
+		"servant": return "丫鬟/小厮"
+		"elder": return "长辈"
+		"guest": return "客人"
+		_: return "管家"
+
+func _update_reward_input() -> void:
+	if not task_reward_input or selected_task_type == "":
+		return
+	
+	var task_info = TASK_TYPES.get(selected_task_type, TASK_TYPES["errand"])
+	task_reward_input.min_value = task_info.base_reward
+	task_reward_input.max_value = task_info.base_reward * 3
+	task_reward_input.value = task_info.base_reward
+	task_reward_input.step = 1
+
+func _on_task_type_selected(index: int) -> void:
+	var task_id = task_type_selector.get_item_id(index)
+	selected_task_type = str(task_id)
+	_update_reward_input()
+
+func _on_task_target_selected(index: int) -> void:
+	if index == 0:
+		selected_target_uid = ""
+	else:
+		var target_id = task_target_selector.get_item_id(index)
+		selected_target_uid = str(target_id)
+
+func _on_task_confirm_pressed() -> void:
+	if selected_target_uid == "":
+		if EventBus.has_signal("show_notification"):
+			EventBus.emit_signal("show_notification", "请选择目标玩家")
+		return
+	
+	if selected_task_type == "":
+		selected_task_type = "errand"
+	
+	var task_info = TASK_TYPES.get(selected_task_type, TASK_TYPES["errand"])
+	var silver_reward = int(task_reward_input.value) if task_reward_input else task_info.base_reward
+	
+	# 执行差事分派
+	_execute_assign_task(selected_target_uid, silver_reward, selected_task_type)
+
+func _on_task_cancel_pressed() -> void:
+	# 关闭差事分派面板
+	if assign_task_panel:
+		assign_task_panel.visible = false
+	# 重置选择
+	selected_task_type = "errand"
+	selected_target_uid = ""
 
 func _refresh_treasury_data() -> void:
 	var game_id = GameState.current_game_id
@@ -438,17 +554,17 @@ func _update_steward_ui() -> void:
 func _load_player_allocation_list() -> void:
 	if not player_list:
 		return
-		
+
 	var game_id = GameState.current_game_id
 	print("[TreasuryUI] Loading player list for game_id: ", game_id)
-	
+
 	# 获取当前局所有玩家
 	var p_res = await SupabaseManager.db_get("/rest/v1/players?current_game_id=eq.%s&select=id,character_name,role_class" % game_id)
 	if p_res["code"] == 200:
 		# 清空旧列表
 		for child in player_list.get_children():
 			child.queue_free()
-			
+
 		if p_res["data"].is_empty():
 			# 调试：如果没有玩家，尝试不带过滤获取 (仅限测试)
 			print("[TreasuryUI] No players found for this game, trying fallback...")
@@ -459,6 +575,9 @@ func _load_player_allocation_list() -> void:
 		else:
 			for p in p_res["data"]:
 				_add_player_to_list(p)
+		
+		# 刷新差事分派面板的目标选择器
+		_update_task_panel_ui()
 	else:
 		push_error("[TreasuryUI] Failed to load players: " + str(p_res.get("error", "Unknown error")))
 
@@ -756,15 +875,51 @@ func _on_ProcureBtn_pressed() -> void:
 	_execute_batch_action("procurement")
 
 func _on_AssignTaskBtn_pressed() -> void:
-	var target_uid := ""
-	if player_list and player_list.get_child_count() > 0:
-		var first_item = player_list.get_child(0)
-		if first_item.has_meta("player_id"):
-			target_uid = first_item.get_meta("player_id")
-	if target_uid == "":
-		push_error("当前无可派遣的目标玩家")
+	# 打开差事分派面板
+	if assign_task_panel:
+		assign_task_panel.visible = true
+		_update_task_panel_ui()
+
+# 执行差事分派（带差事类型）
+func _execute_assign_task(target_uid: String, silver_reward: int, task_type: String) -> void:
+	var task_info = TASK_TYPES.get(task_type, TASK_TYPES["errand"])
+	var stamina_cost = task_info.base_cost
+	
+	# 检查精力是否足够
+	if PlayerState.get_current_stamina() < stamina_cost:
+		if EventBus.has_signal("show_notification"):
+			EventBus.emit_signal("show_notification", "精力不足，执行该行动需要 %d 点精力" % stamina_cost)
 		return
-	_execute_batch_action("assignment", {"target_uid": target_uid})
+	
+	# 调用 RPC
+	var params = {
+		"p_target_uid": target_uid,
+		"p_silver_reward": silver_reward,
+		"p_task_type": task_type
+	}
+	
+	var res = await SupabaseManager.db_rpc("steward_assign_task", params)
+	var ok: bool = int(res.get("code", 0)) == 200
+	if ok:
+		var data = res.get("data")
+		if data is Dictionary and data.has("success") and data["success"] == false:
+			ok = false
+	
+	if ok:
+		# 扣除精力
+		if stamina_cost > 0:
+			PlayerState.consume_stamina(stamina_cost)
+		_refresh_data()
+		if EventBus.has_signal("show_notification"):
+			EventBus.emit_signal("show_notification", "差事已分派！")
+		# 关闭面板
+		if assign_task_panel:
+			assign_task_panel.visible = false
+	else:
+		var err = str(res.get("error", res.get("data", {}).get("error", "未知错误")))
+		push_error("差事分派失败：%s" % err)
+		if EventBus.has_signal("show_notification"):
+			EventBus.emit_signal("show_notification", "差事分派失败：%s" % err)
 
 func _on_SearchGardenBtn_pressed() -> void:
 	_execute_batch_action("search")

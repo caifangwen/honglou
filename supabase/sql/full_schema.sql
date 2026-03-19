@@ -624,7 +624,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- 差使分派
 CREATE OR REPLACE FUNCTION public.steward_assign_task(
     p_target_uid uuid,
-    p_silver_reward int DEFAULT 10
+    p_silver_reward int DEFAULT 10,
+    p_task_type text DEFAULT 'errand'
 )
 RETURNS json AS $$
 DECLARE
@@ -634,6 +635,8 @@ DECLARE
     v_new_silver int;
     v_new_stamina int;
     v_message_id uuid;
+    v_stamina_drain int;
+    v_message_content text;
 BEGIN
     SELECT steward_id, game_id, remaining_stamina
     INTO v_steward_id, v_game_id, v_remaining
@@ -643,10 +646,34 @@ BEGIN
         RAISE EXCEPTION '目标玩家不能为空';
     END IF;
 
-    -- 目标玩家精力 -2（不低于 0），银两 +X
+    -- 根据差事类型设置精力消耗和消息内容
+    v_stamina_drain := 2; -- 默认
+    v_message_content := '你被派去办理一桩差事，略感辛劳，却得了些许赏银。';
+    
+    IF p_task_type = 'errand' THEN
+        v_stamina_drain := 2;
+        v_message_content := '你被派去跑腿办事，来回奔波，幸得赏银鼓励。';
+    ELSIF p_task_type = 'guard' THEN
+        v_stamina_drain := 1;
+        v_message_content := '你被派去看守门户，职责重大，需谨慎行事。';
+    ELSIF p_task_type = 'purchase' THEN
+        v_stamina_drain := 3;
+        v_message_content := '你被派去采办物品，货比三家，颇费心力。';
+    ELSIF p_task_type = 'message' THEN
+        v_stamina_drain := 2;
+        v_message_content := '你被派去传话递信，言辞需谨慎，不可有误。';
+    ELSIF p_task_type = 'clean' THEN
+        v_stamina_drain := 2;
+        v_message_content := '你被派去打扫庭院，虽为琐事，亦不可懈怠。';
+    ELSIF p_task_type = 'special' THEN
+        v_stamina_drain := 4;
+        v_message_content := '你被派去办理特殊差事，责任重大，需全力以赴。';
+    END IF;
+
+    -- 目标玩家精力扣除，银两增加
     UPDATE public.players
     SET silver = silver + COALESCE(p_silver_reward, 0),
-        stamina = GREATEST(stamina - 2, 0),
+        stamina = GREATEST(stamina - v_stamina_drain, 0),
         updated_at = now()
     WHERE id = p_target_uid
     RETURNING silver, stamina INTO v_new_silver, v_new_stamina;
@@ -659,10 +686,10 @@ BEGIN
         v_game_id,
         v_steward_id,
         p_target_uid,
-        '你被派去办理一桩差事，略感辛劳，却得了些许赏银。',
+        v_message_content,
         'batch_order',
-        2,
-        '[]'::jsonb
+        v_stamina_drain,
+        jsonb_build_object('task_type', p_task_type, 'silver_reward', p_silver_reward)
     )
     RETURNING id INTO v_message_id;
 
@@ -674,7 +701,9 @@ BEGIN
         1,
         jsonb_build_object(
             'silver_reward', COALESCE(p_silver_reward, 0),
-            'message_id', v_message_id
+            'message_id', v_message_id,
+            'task_type', p_task_type,
+            'stamina_drain', v_stamina_drain
         ),
         'executed',
         now()
@@ -685,7 +714,9 @@ BEGIN
         'target_silver', v_new_silver,
         'target_stamina', v_new_stamina,
         'stamina', v_remaining,
-        'message_id', v_message_id
+        'message_id', v_message_id,
+        'task_type', p_task_type,
+        'stamina_drain', v_stamina_drain
     );
 EXCEPTION
     WHEN OTHERS THEN
