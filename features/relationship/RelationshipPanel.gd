@@ -12,6 +12,7 @@ extends Control
 var current_relationship: Dictionary = {}
 
 func _ready() -> void:
+    print("[RelationshipPanel] _ready() called")
     _refresh_ui()
     # 监听关系变化信号
     EventBus.relation_changed.connect(func(_a, _b, _type): _refresh_ui())
@@ -20,6 +21,7 @@ func _on_back_btn_pressed() -> void:
     get_tree().change_scene_to_file("res://scenes/main/Hub.tscn")
 
 func _refresh_ui() -> void:
+    print("[RelationshipPanel] _refresh_ui() called")
     # 1. 获取当前关系
     current_relationship = await RelationshipManager.get_current_relationship(PlayerState.uid)
 
@@ -45,11 +47,16 @@ func _refresh_ui() -> void:
     _load_pending_requests()
 
 func _load_pending_requests() -> void:
+    print("[RelationshipPanel] _load_pending_requests() called")
+    print("[RelationshipPanel] Current PlayerState.uid: ", PlayerState.uid)
     # 清空旧列表
     for child in requests_list.get_children():
         child.queue_free()
 
     var requests = await RelationshipManager.get_pending_requests(PlayerState.uid)
+    print("[RelationshipPanel] Pending requests count: ", requests.size())
+    print("[RelationshipPanel] Pending requests data: ", requests)
+    
     for req in requests:
         var hbox = HBoxContainer.new()
         var name_label = Label.new()

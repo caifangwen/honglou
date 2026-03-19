@@ -1,4 +1,4 @@
-﻿﻿extends Control
+﻿extends Control
 
 # 《大观园》管家系统 · 测试调试面板
 # 实现资源调试、月例发放、批条行动、查账、投票、路线检测及事件触发
@@ -647,10 +647,10 @@ func _on_debug_fetch_intel():
 		_log("获取情报失败", "CRITICAL")
 
 func _on_debug_simulate_request():
-	# 模拟一个来自 dummy_user 的对食申请
-	var dummy_uid = "00000000-0000-0000-0000-000000000000"
+	# 模拟一个来自晴雯的对食申请（发送给当前玩家）
+	var qingwen_uid = "55555555-5555-5555-5555-555555555555"
 	var insert_data = {
-		"player_a_uid": dummy_uid,
+		"player_a_uid": qingwen_uid,
 		"player_b_uid": PlayerState.uid,
 		"relation_type": "dui_shi",
 		"status": "pending",
@@ -658,7 +658,7 @@ func _on_debug_simulate_request():
 	}
 	var res = await SupabaseManager.db_insert("maid_relationships", insert_data)
 	if res["code"] == 201:
-		_log("已模拟收到来自 [系统测试员] 的对食申请", "ACTION")
+		_log("已模拟收到来自 [晴雯] 的对食申请", "ACTION")
 		EventBus.show_notification.emit("你收到了新的对食申请")
 	else:
 		_log("模拟申请失败: " + str(res["error"]), "CRITICAL")

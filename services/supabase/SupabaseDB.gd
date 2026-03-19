@@ -17,6 +17,50 @@ func set_manager(manager: Node) -> void:
 # 用法：await db_get("/rest/v1/players?auth_uid=eq.xxx&select=*")
 # ─────────────────────────────────────────
 func db_get(endpoint):
+	if _manager._is_local_mode:
+		# 本地模式：检查是否是 mock 表查询
+		if endpoint.contains("/maid_relationships"):
+			# 解析查询参数
+			var filters = {}
+			if endpoint.contains("player_b_uid=eq."):
+				var parts = endpoint.split("player_b_uid=eq.")
+				if parts.size() > 1:
+					var value = parts[1].split("&")[0]
+					filters["player_b_uid"] = value
+			if endpoint.contains("status=eq."):
+				var parts = endpoint.split("status=eq.")
+				if parts.size() > 1:
+					var value = parts[1].split("&")[0]
+					filters["status"] = value
+			if endpoint.contains("relation_type=eq."):
+				var parts = endpoint.split("relation_type=eq.")
+				if parts.size() > 1:
+					var value = parts[1].split("&")[0]
+					filters["relation_type"] = value
+			# 只查询明确的 id 过滤，避免误解析 select 语句
+			if endpoint.contains("&id=eq."):
+				var parts = endpoint.split("&id=eq.")
+				if parts.size() > 1:
+					var value = parts[1].split("&")[0]
+					filters["id"] = value
+			
+			print("[SupabaseDB] Using mock select for maid_relationships with filters: ", filters)
+			var result = await MockDatabase.mock_select_maid_relationships(filters)
+			return {"code": 200, "data": result}
+		
+		elif endpoint.contains("/notifications"):
+			var filters = {}
+			if endpoint.contains("player_uid=eq."):
+				var parts = endpoint.split("player_uid=eq.")
+				if parts.size() > 1:
+					var value = parts[1].split("&")[0]
+					filters["player_uid"] = value
+			
+			print("[SupabaseDB] Using mock select for notifications with filters: ", filters)
+			var result = await MockDatabase.mock_select_notifications(filters)
+			return {"code": 200, "data": result}
+	
+	# 非本地模式或非 mock 表，使用 HTTP 请求
 	var http = HTTPRequest.new()
 	_manager.add_child(http)
 
@@ -50,6 +94,13 @@ func db_get(endpoint):
 func db_insert(table, data):
 	var body = JSON.stringify(data)
 	if _manager._is_local_mode:
+		# 检查是否是支持的 mock 表
+		if table == "maid_relationships":
+			print("[SupabaseDB] Using mock insert for maid_relationships")
+			return await MockDatabase.mock_insert_maid_relationship(data)
+		elif table == "notifications":
+			print("[SupabaseDB] Using mock insert for notifications")
+			return await MockDatabase.mock_insert_notification(data)
 		# 本地模式：使用 pgREST（无 /rest/v1/ 前缀）
 		var url = GameConfig.LOCAL_API_BASE + "/" + table
 		print("[SupabaseDB] db_insert (local mode): table=", table, ", url=", url)
