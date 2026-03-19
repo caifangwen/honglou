@@ -1,4 +1,4 @@
-extends Control
+﻿extends Control
 
 # TreasuryUI.gd - 银库界面 UI 脚本
 # 负责展示公中银两、月例发放、批条行动及双账本切换
@@ -148,8 +148,14 @@ func _connect_task_panel() -> void:
 
 # 更新差事分派面板 UI
 func _update_task_panel_ui() -> void:
-	if not task_type_selector or not task_target_selector:
+	if not task_type_selector:
+		push_error("[TreasuryUI] task_type_selector is null")
 		return
+	if not task_target_selector:
+		push_error("[TreasuryUI] task_target_selector is null")
+		return
+	
+	print("[TreasuryUI] _update_task_panel_ui called")
 	
 	# 填充差事类型选项
 	task_type_selector.clear()
@@ -162,14 +168,19 @@ func _update_task_panel_ui() -> void:
 	# 填充目标玩家选项
 	task_target_selector.clear()
 	task_target_selector.add_item("—— 请选择目标 ——")
+	
 	if player_list:
+		print("[TreasuryUI] player_list has %d children" % player_list.get_child_count())
 		for item in player_list.get_children():
 			if item.has_meta("player_id"):
 				var player_id = item.get_meta("player_id")
 				var character_name = item.get_meta("character_name")
 				var role_class = item.get_meta("role_class", "servant")
+				print("[TreasuryUI] Adding target: %s (%s) - id: %s" % [character_name, role_class, player_id])
 				task_target_selector.add_item("%s (%s)" % [character_name, _get_role_display(role_class)])
 				task_target_selector.set_item_id(task_target_selector.get_item_count() - 1, player_id)
+	else:
+		push_error("[TreasuryUI] player_list is null")
 	
 	# 根据选择的差事类型更新赏银输入
 	_update_reward_input()
@@ -552,7 +563,11 @@ func _update_steward_ui() -> void:
 	pass
 
 func _load_player_allocation_list() -> void:
+	print("[TreasuryUI] _load_player_allocation_list called")
+	print("[TreasuryUI] player_list node: ", player_list)
+	
 	if not player_list:
+		push_error("[TreasuryUI] player_list node is null! Check scene path")
 		return
 
 	var game_id = GameState.current_game_id
@@ -561,23 +576,29 @@ func _load_player_allocation_list() -> void:
 	# 获取当前局所有玩家
 	var p_res = await SupabaseManager.db_get("/rest/v1/players?current_game_id=eq.%s&select=id,character_name,role_class" % game_id)
 	if p_res["code"] == 200:
+		print("[TreasuryUI] Query result code: 200, data count: ", p_res["data"].size())
 		# 清空旧列表
 		for child in player_list.get_children():
 			child.queue_free()
+		print("[TreasuryUI] Cleared old list, new child count: ", player_list.get_child_count())
 
 		if p_res["data"].is_empty():
 			# 调试：如果没有玩家，尝试不带过滤获取 (仅限测试)
 			print("[TreasuryUI] No players found for this game, trying fallback...")
-			var p_res_all = await SupabaseManager.db_get("/rest/v1/players?limit=10&select=id,character_name,role_class")
+			var p_res_all = await SupabaseManager.db_get("/rest/v1/players?limit=20&select=id,character_name,role_class")
 			if p_res_all["code"] == 200:
+				print("[TreasuryUI] Fallback query returned ", p_res_all["data"].size(), " players")
 				for p in p_res_all["data"]:
 					_add_player_to_list(p)
 		else:
 			for p in p_res["data"]:
 				_add_player_to_list(p)
+
+		print("[TreasuryUI] Final player_list child count: ", player_list.get_child_count())
 		
-		# 刷新差事分派面板的目标选择器
-		_update_task_panel_ui()
+		# 刷新差事分派面板的目标选择器（仅在面板可见时）
+		if assign_task_panel and assign_task_panel.visible:
+			_update_task_panel_ui()
 	else:
 		push_error("[TreasuryUI] Failed to load players: " + str(p_res.get("error", "Unknown error")))
 
@@ -586,6 +607,7 @@ func _add_player_to_list(player_info: Dictionary) -> void:
 	var item = HBoxContainer.new()
 	item.set_meta("player_id", player_info.get("id", ""))
 	item.set_meta("character_name", player_info.get("character_name", "未知"))
+	item.set_meta("role_class", player_info.get("role_class", "servant"))
 	
 	var name_label = Label.new()
 	name_label.text = player_info.get("character_name", "未知")
@@ -875,6 +897,8 @@ func _on_ProcureBtn_pressed() -> void:
 	_execute_batch_action("procurement")
 
 func _on_AssignTaskBtn_pressed() -> void:
+	# 打开差事分派面板前先刷新玩家列表
+	await _load_player_allocation_list()
 	# 打开差事分派面板
 	if assign_task_panel:
 		assign_task_panel.visible = true

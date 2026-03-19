@@ -19,7 +19,35 @@ func set_manager(manager: Node) -> void:
 func db_get(endpoint):
 	if _manager._is_local_mode:
 		# 本地模式：检查是否是 mock 表查询
-		if endpoint.contains("/maid_relationships"):
+		if endpoint.contains("/players"):
+			# 解析查询参数
+			var filters = {}
+			if endpoint.contains("current_game_id=eq."):
+				var parts = endpoint.split("current_game_id=eq.")
+				if parts.size() > 1:
+					var value = parts[1].split("&")[0]
+					filters["current_game_id"] = value
+			if endpoint.contains("auth_uid=eq."):
+				var parts = endpoint.split("auth_uid=eq.")
+				if parts.size() > 1:
+					var value = parts[1].split("&")[0]
+					filters["auth_uid"] = value
+			if endpoint.contains("id=eq."):
+				var parts = endpoint.split("id=eq.")
+				if parts.size() > 1:
+					var value = parts[1].split("&")[0]
+					filters["id"] = value
+			if endpoint.contains("role_class=eq."):
+				var parts = endpoint.split("role_class=eq.")
+				if parts.size() > 1:
+					var value = parts[1].split("&")[0]
+					filters["role_class"] = value
+
+			print("[SupabaseDB] Using mock select for players with filters: ", filters)
+			var result = await MockDatabase.mock_select_players(filters)
+			return {"code": 200, "data": result}
+
+		elif endpoint.contains("/maid_relationships"):
 			# 解析查询参数
 			var filters = {}
 			if endpoint.contains("player_b_uid=eq."):
@@ -55,11 +83,52 @@ func db_get(endpoint):
 				if parts.size() > 1:
 					var value = parts[1].split("&")[0]
 					filters["player_uid"] = value
-			
+
 			print("[SupabaseDB] Using mock select for notifications with filters: ", filters)
 			var result = await MockDatabase.mock_select_notifications(filters)
 			return {"code": 200, "data": result}
-	
+
+		elif endpoint.contains("/steward_accounts"):
+			var filters = {}
+			if endpoint.contains("steward_uid=eq."):
+				var parts = endpoint.split("steward_uid=eq.")
+				if parts.size() > 1:
+					var value = parts[1].split("&")[0]
+					filters["steward_uid"] = value
+			if endpoint.contains("game_id=eq."):
+				var parts = endpoint.split("game_id=eq.")
+				if parts.size() > 1:
+					var value = parts[1].split("&")[0]
+					filters["game_id"] = value
+
+			print("[SupabaseDB] Using mock select for steward_accounts with filters: ", filters)
+			var result = await MockDatabase.mock_select_steward_accounts(filters)
+			return {"code": 200, "data": result}
+
+		elif endpoint.contains("/treasury"):
+			var filters = {}
+			if endpoint.contains("game_id=eq."):
+				var parts = endpoint.split("game_id=eq.")
+				if parts.size() > 1:
+					var value = parts[1].split("&")[0]
+					filters["game_id"] = value
+
+			print("[SupabaseDB] Using mock select for treasury with filters: ", filters)
+			var result = await MockDatabase.mock_select_treasury(filters)
+			return {"code": 200, "data": result}
+
+		elif endpoint.contains("/allowance_records"):
+			var filters = {}
+			if endpoint.contains("game_id=eq."):
+				var parts = endpoint.split("game_id=eq.")
+				if parts.size() > 1:
+					var value = parts[1].split("&")[0]
+					filters["game_id"] = value
+
+			print("[SupabaseDB] Using mock select for allowance_records with filters: ", filters)
+			var result = await MockDatabase.mock_select_allowance_records(filters)
+			return {"code": 200, "data": result}
+
 	# 非本地模式或非 mock 表，使用 HTTP 请求
 	var http = HTTPRequest.new()
 	_manager.add_child(http)
@@ -101,6 +170,12 @@ func db_insert(table, data):
 		elif table == "notifications":
 			print("[SupabaseDB] Using mock insert for notifications")
 			return await MockDatabase.mock_insert_notification(data)
+		elif table == "steward_accounts":
+			print("[SupabaseDB] Using mock insert for steward_accounts")
+			return await MockDatabase.mock_insert_steward_accounts(data)
+		elif table == "allowance_records":
+			print("[SupabaseDB] Using mock insert for allowance_records")
+			return await MockDatabase.mock_insert_allowance_records(data)
 		# 本地模式：使用 pgREST（无 /rest/v1/ 前缀）
 		var url = GameConfig.LOCAL_API_BASE + "/" + table
 		print("[SupabaseDB] db_insert (local mode): table=", table, ", url=", url)
@@ -136,10 +211,12 @@ func db_delete(table, filter):
 # 数据库：RPC（POST to /rpc/）
 # ─────────────────────────────────────────
 func db_rpc(function_name: String, params: Dictionary = {}, with_auth: bool = true):
-	var body = JSON.stringify(params)
 	if _manager._is_local_mode:
-		return await _post(GameConfig.LOCAL_API_BASE + "/rpc/" + function_name, body, false)
+		# 本地模式：直接使用 MockDatabase 模拟 RPC
+		return await MockDatabase.db_rpc(function_name, params, with_auth)
 	else:
+		# 云端模式：调用真实 API
+		var body = JSON.stringify(params)
 		return await _post("/rest/v1/rpc/" + function_name, body, with_auth)
 
 # ─────────────────────────────────────────
