@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>红楼回忆志 - 大观园浮世录</title>
+    <style>
+        :root {
+            --cinnabar: #9e2f2f;
+            --gold: #c9a961;
+            --ink: #2c2c2c;
+            --paper: #f7f3e9;
+            --paper-dark: #e8e0d0;
+            --jade: #5a8f7b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: var(--paper);
+            color: var(--ink);
+            line-height: 1.8;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: var(--paper);
+            padding: 120px 20px 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9a961' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.6;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            letter-spacing: 0.2em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .hero .subtitle {
+            font-size: 1.3rem;
+            color: var(--gold);
+            margin-bottom: 24px;
+            letter-spacing: 0.1em;
+        }
+
+        .hero .tagline {
+            font-size: 1rem;
+            opacity: 0.85;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .hero-badges {
+            margin-top: 32px;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: rgba(201, 169, 97, 0.15);
+            border: 1px solid rgba(201, 169, 97, 0.3);
+            color: var(--gold);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
+
+        /* Navigation */
+        .nav {
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(201, 169, 97, 0.2);
+        }
+
+        .nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 60px;
+        }
+
+        .nav-logo {
+            color: var(--gold);
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+        }
+
+        .nav-links a {
+            color: var(--paper);
+            text-decoration: none;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .nav-links a:hover {
+            opacity: 1;
+            color: var(--gold);
+        }
+
+        /* Sections */
+        .section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 20px;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            color: var(--cinnabar);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title::before {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 28px;
+            background: var(--gold);
+            border-radius: 2px;
+        }
+
+        .section-desc {
+            color: #666;
+            margin-bottom: 48px;
+            font-size: 1.05rem;
+        }
+
+        /* Article Grid */
+        .article-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        .article-card {
+            background: white;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border: 1px solid var(--paper-dark);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .article-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            border-color: var(--gold);
+        }
+
+        .article-card .category {
+            color: var(--cinnabar);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        .article-card h3 {
+            font-size: 1.15rem;
+            margin-bottom: 12px;
+            line-height: 1.5;
+            color: var(--ink);
+        }
+
+        .article-card .excerpt {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.7;
+            margin-bottom: 16px;
+        }
+
+        .article-card .meta {
+            display: flex;
+            gap: 16px;
+            font-size: 0.8rem;
+            color: #999;
+        }
+
+        .article-card .meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Tags */
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .tag {
+            background: var(--paper);
+            color: var(--ink);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        /* Doc Links */
+        .doc-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .doc-item {
+            background: white;
+            padding: 20px 24px;
+            border-radius: 8px;
+            border: 1px solid var(--paper-dark);
+            text-decoration: none;
+            color: var(--ink);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .doc-item:hover {
+            border-color: var(--gold);
+            background: #fffef8;
+        }
+
+        .doc-item .icon {
+            width: 40px;
+            height: 40px;
+            background: var(--paper);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .doc-item .info h4 {
+            font-size: 0.95rem;
+            margin-bottom: 2px;
+        }
+
+        .doc-item .info p {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--ink);
+            color: var(--paper);
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .footer p {
+            opacity: 0.6;
+            font-size: 0.9rem;
+        }
+
+        .footer .links {
+            margin-top: 16px;
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+        }
+
+        .footer a {
+            color: var(--gold);
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .footer a:hover {
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.2rem;
+            }
+            .hero .subtitle {
+                font-size: 1rem;
+            }
+            .article-grid {
+                grid-template-columns: 1fr;
+            }
+            .nav-links {
+                display: none;
+            }
+            .section {
+                padding: 48px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="#" class="nav-logo">红楼回忆志</a>
+            <div class="nav-links">
+                <a href="#articles">开发文章</a>
+                <a href="#docs">项目文档</a>
+                <a href="https://github.com/caifangwen/honglou" target="_blank">GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <h1>红楼回忆志</h1>
+            <p class="subtitle">大观园浮世录</p>
+            <p class="tagline">基于 Godot 引擎开发的《红楼梦》题材游戏项目。以贾府大观园为舞台，融合角色扮演、策略经营与异步竞技，重现百年前的繁华与沉浮。</p>
+            <div class="hero-badges">
+                <span class="badge">Godot 4</span>
+                <span class="badge">Roguelike</span>
+                <span class="badge">百人异步竞技</span>
+                <span class="badge">AI 行为树</span>
+            </div>
+        </div>
+    </header>
+
+    <section class="section" id="articles">
+        <h2 class="section-title">开发文章</h2>
+        <p class="section-desc">记录项目从原型到完整的演进历程，涵盖系统架构、AI 设计、联机方案与美术工作流。</p>
+        <div class="article-grid">
+            <a href="https://www.261449.xyz/posts/game-dev/behavior-tree-types-and-character-diagnosis/" class="article-card" target="_blank">
+                <div class="category">AI 设计</div>
+                <h3>行为树的类型谱系，以及《大观园浮世录》角色关联性断层的诊断</h3>
+                <p class="excerpt">梳理行为树的主要类型谱系，深入分析角色关联性偏弱的根本原因——当前系统是「独立概率状态机的集合」而非「耦合关系网络」。</p>
+                <div class="tags">
+                    <span class="tag">行为树</span>
+                    <span class="tag">AI设计</span>
+                    <span class="tag">游戏系统</span>
+                </div>
+            </a>
+
+            <a href="https://www.261449.xyz/posts/game-dev/daguanyuan-v4-system-design/" class="article-card" target="_blank">
+                <div class="category">系统设计</div>
+                <h3>《大观园浮世录 v4》完整系统设计</h3>
+                <p class="excerpt">概率行为触发机制、状态变量体系、事件系统、结局判定逻辑，以及各角色的决策模型。</p>
+                <div class="tags">
+                    <span class="tag">系统架构</span>
+                    <span class="tag">概率模型</span>
+                    <span class="tag">决策系统</span>
+                </div>
+            </a>
+
+            <a href="https://www.261449.xyz/posts/game-dev/steward-system-expansion/" class="article-card" target="_blank">
+                <div class="category">玩法扩展</div>
+                <h3>管家系统深度扩展：账册造假、借贷生息与采购黑市</h3>
+                <p class="excerpt">基于《大观园·百人异步竞技》v1.1，新增十二种玩法模块，构建立体的资源博弈生态。</p>
+                <div class="tags">
+                    <span class="tag">经济系统</span>
+                    <span class="tag">资源博弈</span>
+                    <span class="tag">玩法设计</span>
+                </div>
+            </a>
+
+            <a href="https://www.261449.xyz/posts/game-dev/godot4-multiplayer/" class="article-card" target="_blank">
+                <div class="category">网络联机</div>
+                <h3>Godot 4 多人联机完整方案</h3>
+                <p class="excerpt">从网络模型选型到 RPC 同步、场景复制、延迟补偿，系统讲解在已有 UI 与 TileMap 架构上实现多人联机的完整方案。</p>
+                <div class="tags">
+                    <span class="tag">多人联机</span>
+                    <span class="tag">RPC</span>
+                    <span class="tag">网络同步</span>
+                </div>
+            </a>
+
+            <a href="https://www.261449.xyz/posts/game-dev/tilemap-integration/" class="article-card" target="_blank">
+                <div class="category">地图系统</div>
+                <h3>瓦片地图系统融入与架构关系详解</h3>
+                <p class="excerpt">在 UI 界面与核心数值逻辑搭建完成之后，如何将 TileMap 系统融入项目，以及二者之间的架构关系详解。</p>
+                <div class="tags">
+                    <span class="tag">TileMap</span>
+                    <span class="tag">架构设计</span>
+                    <span class="tag">Godot</span>
+                </div>
+            </a>
+
+            <a href="https://www.261449.xyz/posts/game-dev/godot-tilemap-guide/" class="article-card" target="_blank">
+                <div class="category">技术指南</div>
+                <h3>Godot 瓦片地图系统深入指南</h3>
+                <p class="excerpt">涵盖 TileSet 配置、物理碰撞、自动图块、导航网格以及脚本控制等核心主题。</p>
+                <div class="tags">
+                    <span class="tag">TileSet</span>
+                    <span class="tag">自动图块</span>
+                    <span class="tag">导航网格</span>
+                </div>
+            </a>
+
+            <a href="https://www.261449.xyz/posts/game-dev/ai-pixel-art-workflow/" class="article-card" target="_blank">
+                <div class="category">美术工作流</div>
+                <h3>借助 AI 工具高效生成像素风游戏画面</h3>
+                <p class="excerpt">涵盖主流工具选择、提示词技巧、工作流搭建与实战案例。</p>
+                <div class="tags">
+                    <span class="tag">AI生成</span>
+                    <span class="tag">像素风</span>
+                    <span class="tag">工作流</span>
+                </div>
+            </a>
+
+            <a href="https://www.261449.xyz/posts/game-dev/database-migration-prompt/" class="article-card" target="_blank">
+                <div class="category">数据架构</div>
+                <h3>数据库迁移的 Prompt 工作流</h3>
+                <p class="excerpt">从扫描现有数据库开始，分析问题、设计新架构、执行迁移、验证回滚的完整流程。</p>
+                <div class="tags">
+                    <span class="tag">数据库</span>
+                    <span class="tag">迁移</span>
+                    <span class="tag">Prompt工程</span>
+                </div>
+            </a>
+
+            <a href="https://www.261449.xyz/posts/game-dev/mock-data-best-practices/" class="article-card" target="_blank">
+                <div class="category">工程实践</div>
+                <h3>Mock 数据最佳实践</h3>
+                <p class="excerpt">全面介绍 Mock 数据的概念、用途、常见工具及最佳实践，帮助开发者提升协作效率与测试质量。</p>
+                <div class="tags">
+                    <span class="tag">测试</span>
+                    <span class="tag">Mock</span>
+                    <span class="tag">协作</span>
+                </div>
+            </a>
+
+            <a href="https://www.261449.xyz/posts/game-dev/daguanyuan-task-breakdown/" class="article-card" target="_blank">
+                <div class="category">项目管理</div>
+                <h3>大观园项目的独立可验证小闭环任务拆解</h3>
+                <p class="excerpt">将大型游戏项目拆解为可独立验证的小闭环任务，提升开发效率与迭代质量。</p>
+                <div class="tags">
+                    <span class="tag">敏捷开发</span>
+                    <span class="tag">任务拆解</span>
+                    <span class="tag">迭代</span>
+                </div>
+            </a>
+
+            <a href="https://www.261449.xyz/posts/game-dev/honglou-character-relationships/" class="article-card" target="_blank">
+                <div class="category">世界观</div>
+                <h3>红楼梦贾府核心人物关系大全</h3>
+                <p class="excerpt">梳理贾府核心人物关系网络，为游戏角色设计与剧情编排提供参考。</p>
+                <div class="tags">
+                    <span class="tag">红楼梦</span>
+                    <span class="tag">人物关系</span>
+                    <span class="tag">世界观</span>
+                </div>
+            </a>
+
+            <a href="https://www.261449.xyz/posts/game-dev/cursor-refactor-prompt/" class="article-card" target="_blank">
+                <div class="category">工具链</div>
+                <h3>专门给 Cursor 的重构提示词</h3>
+                <p class="excerpt">针对 AI 编程助手 Cursor 优化的重构提示词模板，提升代码重构效率与质量。</p>
+                <div class="tags">
+                    <span class="tag">Cursor</span>
+                    <span class="tag">AI编程</span>
+                    <span class="tag">重构</span>
+                </div>
+            </a>
+        </div>
+    </section>
+
+    <section class="section" id="docs" style="background: #fffef8;">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <h2 class="section-title">项目文档</h2>
+            <p class="section-desc">本地开发、部署与系统设计的参考文档。</p>
+            <div class="doc-list">
+                <a href="architecture.md" class="doc-item">
+                    <div class="icon">📐</div>
+                    <div class="info">
+                        <h4>架构说明</h4>
+                        <p>项目整体架构设计</p>
+                    </div>
+                </a>
+                <a href="DATABASE_GUIDE.md" class="doc-item">
+                    <div class="icon">🗄️</div>
+                    <div class="info">
+                        <h4>数据库指南</h4>
+                        <p>数据库设计与使用</p>
+                    </div>
+                </a>
+                <a href="DOCKER_DEPLOYMENT.md" class="doc-item">
+                    <div class="icon">🐳</div>
+                    <div class="info">
+                        <h4>Docker 部署</h4>
+                        <p>容器化部署方案</p>
+                    </div>
+                </a>
+                <a href="LOCAL_SETUP_GUIDE.md" class="doc-item">
+                    <div class="icon">💻</div>
+                    <div class="info">
+                        <h4>本地搭建指南</h4>
+                        <p>开发环境配置</p>
+                    </div>
+                </a>
+                <a href="DUISHI_FEATURE.md" class="doc-item">
+                    <div class="icon">📜</div>
+                    <div class="info">
+                        <h4>对诗功能</h4>
+                        <p>诗词互动玩法设计</p>
+                    </div>
+                </a>
+                <a href="Supabase%20衔接说明.md" class="doc-item">
+                    <div class="icon">🔗</div>
+                    <div class="info">
+                        <h4>Supabase 衔接</h4>
+                        <p>后端服务集成说明</p>
+                    </div>
+                </a>
+                <a href="婚礼活动说明.md" class="doc-item">
+                    <div class="icon">🏮</div>
+                    <div class="info">
+                        <h4>婚礼活动</h4>
+                        <p>活动系统说明</p>
+                    </div>
+                </a>
+                <a href="游戏测试%20QA%20指南.md" class="doc-item">
+                    <div class="icon">🧪</div>
+                    <div class="info">
+                        <h4>测试 QA 指南</h4>
+                        <p>测试流程与规范</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <p>红楼回忆志 · 大观园浮世录 — Godot 开源游戏项目</p>
+        <div class="links">
+            <a href="https://github.com/caifangwen/honglou" target="_blank">GitHub</a>
+            <a href="https://www.261449.xyz/categories/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/" target="_blank">开发博客</a>
+        </div>
+    </footer>
+</body>
+</html>
